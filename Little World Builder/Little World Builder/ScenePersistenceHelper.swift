@@ -9,52 +9,113 @@ import Foundation
 import RealityKit
 import ARKit
 
+struct PersistedModelPlacement: Codable {
+    let modelIdentifier: String
+    let modelFileName: String
+    let anchorTransform: [Float]
+    let modelTransform: [Float]
+}
+
+struct PersistedScene: Codable {
+    let version: Int
+    let savedAt: Date
+    let placements: [PersistedModelPlacement]
+}
+
 final class ScenePersistenceHelper {
-    static func saveScene(for arView: CustomARView, at persistenceUrl: URL) {
-        print("Save scene to local filesystem.")
+    static func saveScene(for arView: CustomARView, sceneManager: SceneManager, at persistenceUrl: URL) {
+        print("Save scene metadata to local filesystem.")
         
-        // 1. Get current worldMap from arView.session
-        arView.session.getCurrentWorldMap { worldMap, error in
-            
-            // 2. Safely unwrap worldMap
-            guard let map = worldMap else {
-                print("Persistence Error: Unable to get worldMap: \(error?.localizedDescription ?? "No world map returned.")")
-                return
+        let placements = sceneManager.anchorEntities.compactMap { anchorEntity -> PersistedModelPlacement? in
+            guard let modelEntity = anchorEntity.children.compactMap({ $0 as? ModelEntity }).first else {
+                print("Persistence Warning: Skipping anchor without a model entity.")
+                return nil
             }
             
-            // 3. Archive data and write to filesystem
-            do {
-                let sceneData = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
-                
-                try sceneData.write(to: persistenceUrl, options: [.atomic])
-                print("Persistence: Scene saved to \(persistenceUrl.path).")
-            } catch {
-                print("Persistence Error: Can't save scene to local filesystem: \(error.localizedDescription)")
+            let identifier = modelEntity.name
+            guard !identifier.isEmpty else {
+                print("Persistence Warning: Skipping model entity without a local model identifier.")
+                return nil
             }
+            
+            let fileName = modelEntity.components[LocalModelComponent.self]?.assetFileName ?? "\(identifier).usdz"
+            return PersistedModelPlacement(
+                modelIdentifier: identifier,
+                modelFileName: fileName,
+                anchorTransform: anchorEntity.transformMatrix(relativeTo: nil).flatArray,
+                modelTransform: modelEntity.transform.matrix.flatArray
+            )
+        }
+        
+        let scene = PersistedScene(version: 1, savedAt: Date(), placements: placements)
+        
+        do {
+            let sceneData = try JSONEncoder().encode(scene)
+            try sceneData.write(to: persistenceUrl, options: [.atomic])
+            print("Persistence: Scene metadata saved to \(persistenceUrl.path) with \(placements.count) placement(s).")
+        } catch {
+            print("Persistence Error: Can't save scene metadata to local filesystem: \(error.localizedDescription)")
         }
     }
     
-    static func loadScene(for arView: CustomARView, with scenePersistenceData: Data) {
-        print("Load scene from local filesystem.")
+    static func loadScene(from scenePersistenceData: Data, modelsViewModel: ModelsViewModel, placementSettings: PlacementSettings) {
+        print("Load scene metadata from local filesystem.")
         
-        // 1, Unarchive the scenePersistenceData and retrieve ARWorldMap
-        let worldMap: ARWorldMap
-
         do {
-            guard let unarchivedWorldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: scenePersistenceData) else {
-                print("Persistence Error: No ARWorldMap in archive.")
-                return
+            let persistedScene = try JSONDecoder().decode(PersistedScene.self, from: scenePersistenceData)
+            for placement in persistedScene.placements {
+                guard let model = modelsViewModel.model(matching: placement.modelIdentifier) ?? modelsViewModel.model(matching: placement.modelFileName) else {
+                    print("Persistence Warning: Missing bundled model for saved placement \(placement.modelIdentifier) / \(placement.modelFileName). Skipping placement.")
+                    continue
+                }
+                
+                guard let anchorMatrix = simd_float4x4(flatArray: placement.anchorTransform),
+                      let modelMatrix = simd_float4x4(flatArray: placement.modelTransform) else {
+                    print("Persistence Warning: Invalid transform data for saved placement \(placement.modelIdentifier). Skipping placement.")
+                    continue
+                }
+                
+                let anchor = ARAnchor(name: "model-\(model.id)", transform: anchorMatrix)
+                let modelAnchor = ModelAnchor(model: model, anchor: anchor, modelTransform: Transform(matrix: modelMatrix))
+                
+                if model.modelEntity == nil {
+                    model.asyncLoadModelEntity { completed, error in
+                        if completed {
+                            placementSettings.modelConfirmedForPlacement.append(modelAnchor)
+                        } else if let error = error {
+                            print("Persistence Error: Unable to load model \(model.name): \(error.localizedDescription)")
+                        }
+                    }
+                } else {
+                    placementSettings.modelConfirmedForPlacement.append(modelAnchor)
+                }
             }
-
-            worldMap = unarchivedWorldMap
         } catch {
-            print("Persistence Error: Unable to unarchive ARWorldMap from scenePersistenceData: \(error.localizedDescription)")
-            return
+            print("Persistence Error: Unable to decode persisted scene metadata: \(error.localizedDescription)")
         }
-        
-        // 2. Reset configuration and load worldMap as initialWorldMap
-        let newConfig = arView.defaultConfiguration
-        newConfig.initialWorldMap = worldMap
-        arView.session.run(newConfig, options: [.resetTracking, .removeExistingAnchors])
+    }
+}
+
+struct LocalModelComponent: Component {
+    let modelIdentifier: String
+    let assetFileName: String
+}
+
+private extension simd_float4x4 {
+    var flatArray: [Float] {
+        [columns.0.x, columns.0.y, columns.0.z, columns.0.w,
+         columns.1.x, columns.1.y, columns.1.z, columns.1.w,
+         columns.2.x, columns.2.y, columns.2.z, columns.2.w,
+         columns.3.x, columns.3.y, columns.3.z, columns.3.w]
+    }
+    
+    init?(flatArray: [Float]) {
+        guard flatArray.count == 16 else { return nil }
+        self.init(
+            SIMD4<Float>(flatArray[0], flatArray[1], flatArray[2], flatArray[3]),
+            SIMD4<Float>(flatArray[4], flatArray[5], flatArray[6], flatArray[7]),
+            SIMD4<Float>(flatArray[8], flatArray[9], flatArray[10], flatArray[11]),
+            SIMD4<Float>(flatArray[12], flatArray[13], flatArray[14], flatArray[15])
+        )
     }
 }

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02LOCALUSDBUNDLE0000000001 /* App Ready USDZ in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALUSDFOLDER0000000001 /* App Ready USDZ */; };
+		02LOCALTHUMBS000000000001 /* Thumbnails in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALTHUMBSFOLDER0000001 /* Thumbnails */; };
 		023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */; };
 		028E1FF827C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
 		028E1FF927C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
@@ -25,20 +27,11 @@
 		02913F3227335E5C00869572 /* SessionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2727335E5B00869572 /* SessionSettings.swift */; };
 		02913F3327335E5C00869572 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2827335E5B00869572 /* SettingsView.swift */; };
 		02913F3427335E5C00869572 /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2927335E5B00869572 /* BrowseView.swift */; };
-		02913F3527335E5C00869572 /* FirebaseStorageHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2A27335E5B00869572 /* FirebaseStorageHelper.swift */; };
 		02913F3627335E5C00869572 /* CustomARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2B27335E5B00869572 /* CustomARView.swift */; };
 		02913F3727335E5C00869572 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2C27335E5B00869572 /* Model.swift */; };
 		02913F3827335E5C00869572 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2D27335E5B00869572 /* View+Extensions.swift */; };
 		02913F3927335E5C00869572 /* ControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2E27335E5B00869572 /* ControlView.swift */; };
 		02913F3E27335EED00869572 /* FocusEntity in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F3D27335EED00869572 /* FocusEntity */; };
-		02913F412733601500869572 /* FirebaseFirestoreSwift-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F402733601500869572 /* FirebaseFirestoreSwift-Beta */; };
-		02913F432733601500869572 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F422733601500869572 /* FirebaseStorage */; };
-		02913F452733601500869572 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F442733601500869572 /* FirebaseAuth */; };
-		02913F472733601500869572 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F462733601500869572 /* FirebaseFirestore */; };
-		02913F492733601500869572 /* FirebaseStorageSwift-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F482733601500869572 /* FirebaseStorageSwift-Beta */; };
-		02913F4B273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
-		02913F4C273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
-		02913F4D273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
 		02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */; };
 		02E1046327C0379500BCFF73 /* DeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046227C0379500BCFF73 /* DeletionView.swift */; };
 		02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E2A8E827BF010C003B9E3B /* ScenePersistenceHelper.swift */; };
@@ -62,6 +55,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02LOCALUSDFOLDER0000000001 /* App Ready USDZ */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "App Ready USDZ"; path = "App Ready USDZ"; sourceTree = SOURCE_ROOT; };
+		02LOCALTHUMBSFOLDER0000001 /* Thumbnails */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Thumbnails; path = Thumbnails; sourceTree = SOURCE_ROOT; };
 		023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		028E1FF727C2D18D0040360B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = "Little World BuilderUITests/Info.plist"; sourceTree = SOURCE_ROOT; };
 		028E1FFA27C2D1DF0040360B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -82,12 +77,10 @@
 		02913F2727335E5B00869572 /* SessionSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionSettings.swift; sourceTree = "<group>"; };
 		02913F2827335E5B00869572 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		02913F2927335E5B00869572 /* BrowseView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
-		02913F2A27335E5B00869572 /* FirebaseStorageHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FirebaseStorageHelper.swift; sourceTree = "<group>"; };
 		02913F2B27335E5B00869572 /* CustomARView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomARView.swift; sourceTree = "<group>"; };
 		02913F2C27335E5B00869572 /* Model.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
 		02913F2D27335E5B00869572 /* View+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		02913F2E27335E5B00869572 /* ControlView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ControlView.swift; sourceTree = "<group>"; };
-		02913F4A273360DF00869572 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDeletionManager.swift; sourceTree = "<group>"; };
 		02E1046227C0379500BCFF73 /* DeletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeletionView.swift; sourceTree = "<group>"; };
 		02E2A8E827BF010C003B9E3B /* ScenePersistenceHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenePersistenceHelper.swift; sourceTree = "<group>"; };
@@ -99,11 +92,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				02913F3E27335EED00869572 /* FocusEntity in Frameworks */,
-				02913F412733601500869572 /* FirebaseFirestoreSwift-Beta in Frameworks */,
-				02913F432733601500869572 /* FirebaseStorage in Frameworks */,
-				02913F472733601500869572 /* FirebaseFirestore in Frameworks */,
-				02913F452733601500869572 /* FirebaseAuth in Frameworks */,
-				02913F492733601500869572 /* FirebaseStorageSwift-Beta in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +135,8 @@
 		02913EF627334C7800869572 /* Little World Builder */ = {
 			isa = PBXGroup;
 			children = (
+				02LOCALUSDFOLDER0000000001 /* App Ready USDZ */,
+				02LOCALTHUMBSFOLDER0000001 /* Thumbnails */,
 				02913F2227335E3C00869572 /* ARViewContainer.swift */,
 				02913EFB27334C7900869572 /* Assets.xcassets */,
 				02913F2927335E5B00869572 /* BrowseView.swift */,
@@ -154,8 +144,6 @@
 				02913F2E27335E5B00869572 /* ControlView.swift */,
 				02913F2B27335E5B00869572 /* CustomARView.swift */,
 				02E1046227C0379500BCFF73 /* DeletionView.swift */,
-				02913F2A27335E5B00869572 /* FirebaseStorageHelper.swift */,
-				02913F4A273360DF00869572 /* GoogleService-Info.plist */,
 				02913F0027334C7900869572 /* Info.plist */,
 				02913EF727334C7800869572 /* Little_World_BuilderApp.swift */,
 				02913F2C27335E5B00869572 /* Model.swift */,
@@ -217,11 +205,6 @@
 			name = "Little World Builder";
 			packageProductDependencies = (
 				02913F3D27335EED00869572 /* FocusEntity */,
-				02913F402733601500869572 /* FirebaseFirestoreSwift-Beta */,
-				02913F422733601500869572 /* FirebaseStorage */,
-				02913F442733601500869572 /* FirebaseAuth */,
-				02913F462733601500869572 /* FirebaseFirestore */,
-				02913F482733601500869572 /* FirebaseStorageSwift-Beta */,
 			);
 			productName = "Little World Builder";
 			productReference = 02913EF427334C7800869572 /* Little World Builder.app */;
@@ -296,7 +279,6 @@
 			mainGroup = 02913EEB27334C7800869572;
 			packageReferences = (
 				02913F3C27335EED00869572 /* XCRemoteSwiftPackageReference "FocusEntity" */,
-				02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = 02913EF527334C7800869572 /* Products */;
 			projectDirPath = "";
@@ -314,10 +296,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				02LOCALUSDBUNDLE0000000001 /* App Ready USDZ in Resources */,
+				02LOCALTHUMBS000000000001 /* Thumbnails in Resources */,
 				02913EFF27334C7900869572 /* Preview Assets.xcassets in Resources */,
 				02913EFC27334C7900869572 /* Assets.xcassets in Resources */,
 				023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */,
-				02913F4B273360DF00869572 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,7 +309,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				028E1FF827C2D18D0040360B /* Info.plist in Resources */,
-				02913F4C273360DF00869572 /* GoogleService-Info.plist in Resources */,
 				028E1FFB27C2D1DF0040360B /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -336,7 +318,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				028E1FF927C2D18D0040360B /* Info.plist in Resources */,
-				02913F4D273360DF00869572 /* GoogleService-Info.plist in Resources */,
 				028E1FFC27C2D1DF0040360B /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -356,7 +337,6 @@
 				02913F3127335E5B00869572 /* ModelsViewModel.swift in Sources */,
 				02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */,
 				02913EF827334C7800869572 /* Little_World_BuilderApp.swift in Sources */,
-				02913F3527335E5C00869572 /* FirebaseStorageHelper.swift in Sources */,
 				02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */,
 				02913F2F27335E5B00869572 /* PlacementView.swift in Sources */,
 				02913F3827335E5C00869572 /* View+Extensions.swift in Sources */,
@@ -694,14 +674,6 @@
 				minimumVersion = 2.2.3;
 			};
 		};
-		02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "http://github.com/firebase/firebase-ios-sdk.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.9.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -709,31 +681,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 02913F3C27335EED00869572 /* XCRemoteSwiftPackageReference "FocusEntity" */;
 			productName = FocusEntity;
-		};
-		02913F402733601500869572 /* FirebaseFirestoreSwift-Beta */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseFirestoreSwift-Beta";
-		};
-		02913F422733601500869572 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
-		};
-		02913F442733601500869572 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		02913F462733601500869572 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		02913F482733601500869572 /* FirebaseStorageSwift-Beta */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3F2733601500869572 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseStorageSwift-Beta";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
