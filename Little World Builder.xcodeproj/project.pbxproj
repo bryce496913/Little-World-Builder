@@ -143,6 +143,9 @@
 			children = (
 				02LOCALUSDFOLDER0000000001 /* App Ready USDZ */,
 				02LOCALTHUMBSFOLDER0000001 /* Thumbnails */,
+				02AATHEME0000000000000001 /* AppTheme.swift */,
+				02AASAVED000000000000001 /* SavedWorldsView.swift */,
+				02AAMENU0000000000000001 /* MainMenuView.swift */,
 				02913F2227335E3C00869572 /* ARViewContainer.swift */,
 				02913EFB27334C7900869572 /* Assets.xcassets */,
 				02913F2927335E5B00869572 /* BrowseView.swift */,
@@ -335,6 +338,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				02AATHEMEBUILD000000001 /* AppTheme.swift in Sources */,
+				02AASAVEDBUILD00000001 /* SavedWorldsView.swift in Sources */,
+				02AAMENUBUILD000000001 /* MainMenuView.swift in Sources */,
 				02913F3227335E5C00869572 /* SessionSettings.swift in Sources */,
 				02913F3427335E5C00869572 /* BrowseView.swift in Sources */,
 				02913F3327335E5C00869572 /* SettingsView.swift in Sources */,
