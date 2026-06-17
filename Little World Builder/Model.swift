@@ -73,11 +73,22 @@ final class Model: ObservableObject, Identifiable {
     
     private static func loadThumbnail(for identifier: String) -> UIImage {
         let possibleNames = [identifier, displayName(for: identifier)]
+        let possibleExtensions = ["png", "jpg", "jpeg"]
+
         for name in possibleNames {
             if let image = UIImage(named: name) {
                 return image
             }
+
+            for fileExtension in possibleExtensions {
+                if let thumbnailURL = Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Thumbnails"),
+                   let image = UIImage(contentsOfFile: thumbnailURL.path) {
+                    return image
+                }
+            }
         }
+
+        print("Thumbnail Error: Unable to load thumbnail for \(identifier). Confirm a matching image exists in the Thumbnails bundled resource folder.")
         return UIImage(systemName: "photo") ?? UIImage()
     }
 }
