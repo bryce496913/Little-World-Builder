@@ -11,7 +11,7 @@ final class NativePlacementManager {
     }
 
     func install(in arView: ARView) {
-        let anchor = AnchorEntity(world: .init(translation: [0, 0, 0]))
+        let anchor = AnchorEntity(world: SIMD3<Float>(0, 0, 0))
         anchor.name = "native-placement-indicator-anchor"
         anchor.addChild(indicator)
         arView.scene.addAnchor(anchor)
