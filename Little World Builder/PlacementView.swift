@@ -7,13 +7,17 @@ struct PlacementView: View {
         VStack(spacing: 12) {
             if let selectedModel = placementSettings.selectedModel {
                 Text("Place \(selectedModel.name)").appText(.h2)
-                Text("Aim at a surface, then confirm.").appText(.paragraph, color: AppTheme.mutedText)
+                Text(placementSettings.placementStatusMessage).appText(.paragraph, color: placementSettings.isPlacementAvailable ? AppTheme.highlight : AppTheme.mutedText)
             }
             HStack(spacing: 18) {
                 AppButton("Cancel", systemImage: "xmark", style: .secondary) {
                     self.placementSettings.selectedModel = nil
                 }
                 AppButton("Place", systemImage: "checkmark", style: .primary) {
+                    guard self.placementSettings.isPlacementAvailable else {
+                        print("Placement Error: Confirm placement requested before a surface was available.")
+                        return
+                    }
                     guard let selectedModel = self.placementSettings.selectedModel else {
                         print("Placement Error: Confirm placement requested without a selected model.")
                         return
@@ -21,6 +25,7 @@ struct PlacementView: View {
                     self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: nil))
                     self.placementSettings.selectedModel = nil
                 }
+                .disabled(!placementSettings.isPlacementAvailable)
             }
         }
         .padding(16)

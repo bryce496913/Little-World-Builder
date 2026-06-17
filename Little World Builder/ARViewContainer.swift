@@ -37,8 +37,9 @@ struct ARViewContainer: UIViewRepresentable {
     
     private func updateScene(for arView: CustomARView) {
         
-        // Only display focusEntity when the user has selected a model for placement
-        arView.focusEntity?.isEnabled = self.placementSettings.selectedModel != nil
+        arView.nativePlacementManager.update(in: arView, isPlacementActive: self.placementSettings.selectedModel != nil)
+        self.placementSettings.isPlacementAvailable = arView.nativePlacementManager.isPlacementAvailable
+        self.placementSettings.placementStatusMessage = arView.nativePlacementManager.isPlacementAvailable ? "Ready to place" : "Scan a surface"
         
         // Add model(s) to scene if confirmed for placement
         if let modelAnchor = self.placementSettings.modelConfirmedForPlacement.popLast(), let modelEntity = modelAnchor.model.modelEntity {
@@ -46,21 +47,24 @@ struct ARViewContainer: UIViewRepresentable {
             if let anchor = modelAnchor.anchor {
                 // Anchor is being loaded from persisted scene
                 self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: modelAnchor.modelTransform, in: arView)
-            } else if let transform = getTransformForPlacement(in: arView) {
-                // Anchor needs to be created for placement
-                let anchorName = anchorNamePrefix + modelAnchor.model.id
-                let anchor = ARAnchor(name: anchorName, transform: transform)
-                
-                self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: nil, in: arView)
-                
-                arView.session.add(anchor: anchor)
-                
+            } else if let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() {
+                // Anchor is created from the latest native raycast placement transform.
+                anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
+                self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
                 self.placementSettings.recentlyPlaced.append(modelAnchor.model)
+            } else {
+                print("Placement Error: No valid surface is available for \(modelAnchor.model.name).")
             }
         }
     }
     
     private func place(_ modelEntity: ModelEntity, for model: Model, anchor: ARAnchor, modelTransform: Transform?, in arView: ARView) {
+        let anchorEntity = AnchorEntity(world: anchor.transform)
+        anchorEntity.name = anchor.name ?? anchorNamePrefix + model.id
+        self.place(modelEntity, for: model, anchorEntity: anchorEntity, modelTransform: modelTransform, in: arView)
+    }
+
+    private func place(_ modelEntity: ModelEntity, for model: Model, anchorEntity: AnchorEntity, modelTransform: Transform?, in arView: ARView) {
         //1. Clone modelEntity. This creates an identical copy of modelEntity and references the same model. This also allows us to have multiple models of the same asset in our scene.
         let clonedEntity = modelEntity.clone(recursive: true)
         clonedEntity.name = model.id
@@ -73,11 +77,8 @@ struct ARViewContainer: UIViewRepresentable {
         clonedEntity.generateCollisionShapes(recursive: true)
         arView.installGestures([.translation, .rotation, .scale], for: clonedEntity)
         
-        //3. Create an anchorEntity and add clonedEntity to the anchorEntity.
-        let anchorEntity = AnchorEntity(plane: .any)
+        //3. Add clonedEntity to the provided native anchorEntity.
         anchorEntity.addChild(clonedEntity)
-        
-        anchorEntity.anchoring = AnchoringComponent(anchor)
         
         //4. Add the anchorEntity to the arView.scene
         arView.scene.addAnchor(anchorEntity)
@@ -85,15 +86,6 @@ struct ARViewContainer: UIViewRepresentable {
         self.sceneManager.anchorEntities.append(anchorEntity)
         
         print("Added modelEntity to scene")
-    }
-    
-    private func getTransformForPlacement(in arView: ARView) -> simd_float4x4? {
-        guard let query = arView.makeRaycastQuery(from: arView.center, allowing: .estimatedPlane, alignment: .any) else {
-            return nil
-        }
-        guard let raycastResult = arView.session.raycast(query).first else { return nil }
-        
-        return raycastResult.worldTransform
     }
 }
 
