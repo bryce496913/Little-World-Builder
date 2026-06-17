@@ -1,61 +1,33 @@
-//
-//  PlacementView.swift
-//  AR Test
-//
-//  Created by Bryce on 6/07/21.
-//
-
 import SwiftUI
 
 struct PlacementView: View {
     @EnvironmentObject var placementSettings: PlacementSettings
-    
-    var body: some View {
-        HStack {
-            
-            Spacer()
-            
-            PlacementButton(systemIconName: "xmark.circle.fill") {
-                print("Canel Placement button pressed.")
-                self.placementSettings.selectedModel = nil
-            }
-            
-            Spacer()
-            
-            PlacementButton(systemIconName: "checkmark.circle.fill") {
-                print("Confirm Placement button pressed.")
 
-                guard let selectedModel = self.placementSettings.selectedModel else {
-                    print("Placement Error: Confirm placement requested without a selected model.")
-                    return
+    var body: some View {
+        VStack(spacing: 12) {
+            if let selectedModel = placementSettings.selectedModel {
+                Text("Place \(selectedModel.name)").appText(.h2)
+                Text("Aim at a surface, then confirm.").appText(.paragraph, color: AppTheme.mutedText)
+            }
+            HStack(spacing: 18) {
+                AppButton("Cancel", systemImage: "xmark", style: .secondary) {
+                    self.placementSettings.selectedModel = nil
                 }
-
-                let modelAnchor = ModelAnchor(model: selectedModel, anchor: nil)
-                self.placementSettings.modelConfirmedForPlacement.append(modelAnchor)
-                
-                self.placementSettings.selectedModel = nil
+                AppButton("Place", systemImage: "checkmark", style: .primary) {
+                    guard let selectedModel = self.placementSettings.selectedModel else {
+                        print("Placement Error: Confirm placement requested without a selected model.")
+                        return
+                    }
+                    self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: nil))
+                    self.placementSettings.selectedModel = nil
+                }
             }
-            
-            Spacer()
         }
-        .padding(.bottom, 30)
-    }
-}
-
-struct PlacementButton: View {
-    let systemIconName: String
-    let action: () -> Void
-    
-    var body: some View {
-        
-        Button(action: {
-            self.action()
-        }) {
-            Image(systemName: systemIconName)
-                .font(.system(size: 50, weight: .light, design: .default))
-                .foregroundColor(.white)
-                .buttonStyle(PlainButtonStyle())
-        }
-        .frame(width: 75, height: 75)
+        .padding(16)
+        .background(AppTheme.surface.opacity(0.94))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(AppTheme.highlight, lineWidth: 1))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 24)
     }
 }

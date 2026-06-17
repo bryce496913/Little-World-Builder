@@ -17,7 +17,7 @@ struct Little_World_BuilderApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainMenuView()
                 .environmentObject(placementSettings)
                 .environmentObject(sessionSettings)
                 .environmentObject(sceneManager)

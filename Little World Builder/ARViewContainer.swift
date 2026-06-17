@@ -117,6 +117,24 @@ class SceneManager: ObservableObject {
     var scenePersistenceData: Data? {
         return try? Data(contentsOf: persistenceUrl)
     }
+
+    func deleteSavedScene() {
+        guard FileManager.default.fileExists(atPath: persistenceUrl.path) else { return }
+        do {
+            try FileManager.default.removeItem(at: persistenceUrl)
+            print("Persistence: Deleted saved scene at \(persistenceUrl.path).")
+        } catch {
+            print("Persistence Error: Unable to delete saved scene: \(error.localizedDescription)")
+        }
+    }
+
+    func clearCurrentScene() {
+        for anchorEntity in anchorEntities {
+            print("Removing anchorEntity with id: \(String(describing: anchorEntity.anchorIdentifier))")
+            anchorEntity.removeFromParent()
+        }
+        anchorEntities.removeAll(keepingCapacity: true)
+    }
 }
 
 extension ARViewContainer {
