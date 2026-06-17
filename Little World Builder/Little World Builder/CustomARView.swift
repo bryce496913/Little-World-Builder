@@ -7,11 +7,11 @@
 
 import RealityKit
 import ARKit
-import FocusEntity
 import Combine
 
 final class CustomARView: ARView {
-    var focusEntity: FocusEntity?
+    let nativePlacementManager = NativePlacementManager()
+    private let coachingOverlay = ARCoachingOverlayView()
     var sessionSettings: SessionSettings
     var modelDeletionManager: ModelDeletionManager
     
@@ -38,8 +38,6 @@ final class CustomARView: ARView {
         
         super.init(frame: frameRect)
         
-        self.focusEntity = FocusEntity(on: self, focus: .classic)
-        
         self.configure()
         
         self.initializeSettings()
@@ -59,8 +57,26 @@ final class CustomARView: ARView {
     
     private func configure() {
         session.run(defaultConfiguration)
+        nativePlacementManager.install(in: self)
+        configureCoachingOverlay()
     }
     
+
+    private func configureCoachingOverlay() {
+        coachingOverlay.session = session
+        coachingOverlay.goal = .anyPlane
+        coachingOverlay.activatesAutomatically = true
+        coachingOverlay.translatesAutoresizingMaskIntoConstraints = false
+        coachingOverlay.backgroundColor = .clear
+        addSubview(coachingOverlay)
+        NSLayoutConstraint.activate([
+            coachingOverlay.topAnchor.constraint(equalTo: topAnchor),
+            coachingOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+            coachingOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
+            coachingOverlay.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
     private func initializeSettings() {
         self.updatePeopleOcclusion(isEnabled: sessionSettings.isPeopleOcclusionEnabled)
         self.updateObjectOcclusion(isEnabled: sessionSettings.isObjectOcclusionEnabled)

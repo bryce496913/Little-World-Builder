@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */; };
 		023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */; };
 		028E1FF827C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
 		028E1FF927C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
@@ -29,7 +30,6 @@
 		02913F3727335E5C00869572 /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2C27335E5B00869572 /* Model.swift */; };
 		02913F3827335E5C00869572 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2D27335E5B00869572 /* View+Extensions.swift */; };
 		02913F3927335E5C00869572 /* ControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2E27335E5B00869572 /* ControlView.swift */; };
-		02913F3E27335EED00869572 /* FocusEntity in Frameworks */ = {isa = PBXBuildFile; productRef = 02913F3D27335EED00869572 /* FocusEntity */; };
 		02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */; };
 		02E1046327C0379500BCFF73 /* DeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046227C0379500BCFF73 /* DeletionView.swift */; };
 		02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E2A8E827BF010C003B9E3B /* ScenePersistenceHelper.swift */; };
@@ -53,6 +53,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlacementManager.swift; sourceTree = "<group>"; };
 		023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		028E1FF727C2D18D0040360B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = "Little World BuilderUITests/Info.plist"; sourceTree = SOURCE_ROOT; };
 		028E1FFA27C2D1DF0040360B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -87,7 +88,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				02913F3E27335EED00869572 /* FocusEntity in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,6 +143,7 @@
 				02913F2C27335E5B00869572 /* Model.swift */,
 				02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */,
 				02913F2627335E5B00869572 /* ModelsViewModel.swift */,
+				02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */,
 				02913F2527335E5B00869572 /* PlacementSettings.swift */,
 				02913F2427335E5B00869572 /* PlacementView.swift */,
 				02913EFD27334C7900869572 /* Preview Content */,
@@ -198,7 +199,6 @@
 			);
 			name = "Little World Builder";
 			packageProductDependencies = (
-				02913F3D27335EED00869572 /* FocusEntity */,
 			);
 			productName = "Little World Builder";
 			productReference = 02913EF427334C7800869572 /* Little World Builder.app */;
@@ -272,7 +272,6 @@
 			);
 			mainGroup = 02913EEB27334C7800869572;
 			packageReferences = (
-				02913F3C27335EED00869572 /* XCRemoteSwiftPackageReference "FocusEntity" */,
 			);
 			productRefGroup = 02913EF527334C7800869572 /* Products */;
 			projectDirPath = "";
@@ -337,6 +336,7 @@
 				02913F3927335E5C00869572 /* ControlView.swift in Sources */,
 				02E1046327C0379500BCFF73 /* DeletionView.swift in Sources */,
 				02913F3027335E5B00869572 /* PlacementSettings.swift in Sources */,
+				02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -657,24 +657,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		02913F3C27335EED00869572 /* XCRemoteSwiftPackageReference "FocusEntity" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/maxxfrazer/FocusEntity";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.5.2;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		02913F3D27335EED00869572 /* FocusEntity */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 02913F3C27335EED00869572 /* XCRemoteSwiftPackageReference "FocusEntity" */;
-			productName = FocusEntity;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 02913EEC27334C7800869572 /* Project object */;
 }

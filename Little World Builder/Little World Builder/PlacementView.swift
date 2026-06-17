@@ -11,7 +11,11 @@ struct PlacementView: View {
     @EnvironmentObject var placementSettings: PlacementSettings
     
     var body: some View {
-        HStack {
+        VStack(spacing: 8) {
+            Text(placementSettings.placementStatusMessage)
+                .font(.caption)
+                .foregroundColor(placementSettings.isPlacementAvailable ? .green : .white)
+            HStack {
             
             Spacer()
             
@@ -22,8 +26,13 @@ struct PlacementView: View {
             
             Spacer()
             
-            PlacementButton(systemIconName: "checkmark.circle.fill") {
+            PlacementButton(systemIconName: "checkmark.circle.fill", isEnabled: placementSettings.isPlacementAvailable) {
                 print("Confirm Placement button pressed.")
+
+                guard self.placementSettings.isPlacementAvailable else {
+                    print("Placement Error: Confirm placement requested before a surface was available.")
+                    return
+                }
 
                 guard let selectedModel = self.placementSettings.selectedModel else {
                     print("Placement Error: Confirm placement requested without a selected model.")
@@ -38,12 +47,14 @@ struct PlacementView: View {
             
             Spacer()
         }
+        }
         .padding(.bottom, 30)
     }
 }
 
 struct PlacementButton: View {
     let systemIconName: String
+    var isEnabled: Bool = true
     let action: () -> Void
     
     var body: some View {
@@ -53,9 +64,10 @@ struct PlacementButton: View {
         }) {
             Image(systemName: systemIconName)
                 .font(.system(size: 50, weight: .light, design: .default))
-                .foregroundColor(.white)
+                .foregroundColor(isEnabled ? .white : .gray)
                 .buttonStyle(PlainButtonStyle())
         }
         .frame(width: 75, height: 75)
+        .disabled(!isEnabled)
     }
 }
