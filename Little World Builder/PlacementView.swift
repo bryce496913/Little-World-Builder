@@ -22,8 +22,8 @@ struct PlacementView: View {
                         print("Placement Error: Confirm placement requested without a selected model.")
                         return
                     }
+                    print("Placement: confirmed Place for \(selectedModel.name) at \(selectedModel.assetURL.path).")
                     self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: nil))
-                    self.placementSettings.selectedModel = nil
                 }
                 .disabled(!placementSettings.isPlacementAvailable)
             }

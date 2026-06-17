@@ -41,23 +41,41 @@ struct ARViewContainer: UIViewRepresentable {
         self.placementSettings.isPlacementAvailable = arView.nativePlacementManager.isPlacementAvailable
         self.placementSettings.placementStatusMessage = arView.nativePlacementManager.isPlacementAvailable ? "Ready to place" : "Scan a surface"
         
-        // Add model(s) to scene if confirmed for placement
-        if let modelAnchor = self.placementSettings.modelConfirmedForPlacement.popLast(), let modelEntity = modelAnchor.model.modelEntity {
-            
-            if let anchor = modelAnchor.anchor {
-                // Anchor is being loaded from persisted scene
-                self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: modelAnchor.modelTransform, in: arView)
-            } else if let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() {
-                // Anchor is created from the latest native raycast placement transform.
-                anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
-                self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
-                self.placementSettings.recentlyPlaced.append(modelAnchor.model)
-            } else {
-                print("Placement Error: No valid surface is available for \(modelAnchor.model.name).")
-            }
+        // Add model(s) to scene if confirmed for placement.
+        // Keep this after the native placement update so a Place tap uses the freshest
+        // center-screen raycast transform while the selected model is still active.
+        if let modelAnchor = self.placementSettings.modelConfirmedForPlacement.popLast() {
+            self.placeConfirmed(modelAnchor, in: arView)
         }
     }
     
+    private func placeConfirmed(_ modelAnchor: ModelAnchor, in arView: CustomARView) {
+        guard let modelEntity = modelAnchor.model.modelEntity else {
+            print("Placement Error: Model entity for \(modelAnchor.model.name) is not loaded from \(modelAnchor.model.assetURL.path).")
+            return
+        }
+
+        if let anchor = modelAnchor.anchor {
+            // Anchor is being loaded from persisted scene.
+            self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: modelAnchor.modelTransform, in: arView)
+            return
+        }
+
+        guard let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() else {
+            print("Placement Error: No valid surface transform is available for \(modelAnchor.model.name).")
+            return
+        }
+
+        anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
+        print("Placement: placing \(modelAnchor.model.name) from \(modelAnchor.model.assetURL.lastPathComponent).")
+        self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
+        self.placementSettings.recentlyPlaced.append(modelAnchor.model)
+
+        if self.placementSettings.selectedModel?.id == modelAnchor.model.id {
+            self.placementSettings.selectedModel = nil
+        }
+    }
+
     private func place(_ modelEntity: ModelEntity, for model: Model, anchor: ARAnchor, modelTransform: Transform?, in arView: ARView) {
         let anchorEntity = AnchorEntity(world: anchor.transform)
         anchorEntity.name = anchor.name ?? anchorNamePrefix + model.id
@@ -85,7 +103,7 @@ struct ARViewContainer: UIViewRepresentable {
         
         self.sceneManager.anchorEntities.append(anchorEntity)
         
-        print("Added modelEntity to scene")
+        print("Placement: added \(model.name) to scene. Scene anchor count: \(arView.scene.anchors.count).")
     }
 }
 
