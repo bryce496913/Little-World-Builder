@@ -24,8 +24,13 @@ struct PlacementView: View {
             
             PlacementButton(systemIconName: "checkmark.circle.fill") {
                 print("Confirm Placement button pressed.")
-                
-                let modelAnchor = ModelAnchor(model: self.placementSettings.selectedModel!, anchor: nil)
+
+                guard let selectedModel = self.placementSettings.selectedModel else {
+                    print("Placement Error: Confirm placement requested without a selected model.")
+                    return
+                }
+
+                let modelAnchor = ModelAnchor(model: selectedModel, anchor: nil)
                 self.placementSettings.modelConfirmedForPlacement.append(modelAnchor)
                 
                 self.placementSettings.selectedModel = nil

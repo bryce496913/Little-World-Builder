@@ -8,13 +8,25 @@
 import Foundation
 import Firebase
 
-class FirebaseStorageHelper {
-    static private let cloudStorage = Storage.storage()
+final class FirebaseStorageHelper {
+    private static let cloudStorage = Storage.storage()
     
-    class func asyncDownloadToFilesystem(relativePath: String, handler: @escaping (_ fileUrl: URL) -> Void) {
+    static func asyncDownloadToFilesystem(relativePath: String, handler: @escaping (_ fileUrl: URL) -> Void) {
         // Create local filesystem URL
-        let docsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let docsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("Firebase Storage Error: Unable to locate the documents directory for \(relativePath).")
+            return
+        }
+
         let fileUrl = docsUrl.appendingPathComponent(relativePath)
+        let destinationDirectory = fileUrl.deletingLastPathComponent()
+
+        do {
+            try FileManager.default.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
+        } catch {
+            print("Firebase Storage Error: Unable to create destination directory for \(relativePath): \(error.localizedDescription)")
+            return
+        }
         
         // Check if asset is already in the local filesystem
         // if it is, load that asset and return
@@ -29,9 +41,10 @@ class FirebaseStorageHelper {
         // Download to the local filesystem
         storageRef.write(toFile: fileUrl) { url, error in
             guard let localUrl = url else {
-                print("Firebase storage: Error downloading file with relativePath: \(relativePath)")
+                print("Firebase Storage Error: Unable to download \(relativePath): \(error?.localizedDescription ?? "No local URL returned.")")
                 return
-        }
+            }
+
             handler(localUrl)
         }.resume()
     }

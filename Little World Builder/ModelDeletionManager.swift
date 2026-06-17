@@ -1,15 +1,15 @@
 //
-//  ModelDelectionManager.swift
+//  ModelDeletionManager.swift
 //  Little World Builder
 //
 //  Created by Bryce on 18/02/22.
 //
 
-import SwiftUI
+import Combine
 import RealityKit
 
-class ModelDeletionManager: ObservableObject {
-    @Published var entitySelectedForDeletion: ModelEntity? = nil {
+final class ModelDeletionManager: ObservableObject {
+    @Published var entitySelectedForDeletion: ModelEntity? {
         willSet(newValue) {
             if self.entitySelectedForDeletion == nil, let newlySelectedModelEntity = newValue {
                 // Selecting new entitySelectedForDeletion, no prior selection

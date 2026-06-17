@@ -10,48 +10,33 @@ import RealityKit
 import Combine
 
 enum ModelCategory: String, CaseIterable {
-    case Land
-    case Island
-    case Water
-    case Trees
-    case Creatures
-    case Vehicles
+    case land = "Land"
+    case island = "Island"
+    case water = "Water"
+    case trees = "Trees"
+    case creatures = "Creatures"
+    case vehicles = "Vehicles"
     
     var label: String {
-        get {
-            switch self {
-            case .Land:
-                return "Land"
-            case .Island:
-                return "Island"
-            case .Water:
-                return "Water"
-            case .Trees:
-                return "Trees"
-            case .Creatures:
-                return "Creatures"
-            case .Vehicles:
-                return "Vehicles"
-            }
-        }
+        rawValue
     }
 }
 
 
-class Model: ObservableObject, Identifiable {
-    var id: String = UUID().uuidString
-    var name: String
-    var category: ModelCategory
+final class Model: ObservableObject, Identifiable {
+    let id: String = UUID().uuidString
+    let name: String
+    let category: ModelCategory
     @Published var thumbnail: UIImage
     var modelEntity: ModelEntity?
-    var scaleCompensation: Float
+    let scaleCompensation: Float
     
     private var cancellable: AnyCancellable?
     
     init(name: String, category: ModelCategory, scaleCompensation: Float = 1.0) {
         self.name = name
         self.category = category
-        self.thumbnail = UIImage(systemName: "photo")!
+        self.thumbnail = UIImage(systemName: "photo") ?? UIImage()
         self.scaleCompensation = scaleCompensation
         
         FirebaseStorageHelper.asyncDownloadToFilesystem(relativePath: "thumbnails/\(self.name).png") { localUrl in
@@ -59,7 +44,7 @@ class Model: ObservableObject, Identifiable {
                 let imageData = try Data(contentsOf: localUrl)
                 self.thumbnail = UIImage(data: imageData) ?? self.thumbnail
             } catch {
-                print("Error loading image: \(error.localizedDescription)")
+                print("Thumbnail Error: Unable to load image for \(self.name): \(error.localizedDescription)")
             }
         }
     }
@@ -70,7 +55,8 @@ class Model: ObservableObject, Identifiable {
                 .sink(receiveCompletion: { loadCompletion in
                     
                     switch loadCompletion {
-                    case .failure(let error): print("Unable to load modelEntity for \(self.name).Error\(error.localizedDescription)")
+                    case .failure(let error):
+                        print("Model Error: Unable to load modelEntity for \(self.name): \(error.localizedDescription)")
                         handler(false, error)
                     case .finished:
                         break
@@ -89,4 +75,3 @@ class Model: ObservableObject, Identifiable {
         }
     }
 }
-

@@ -21,7 +21,7 @@
 		02913F2327335E3C00869572 /* ARViewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2227335E3C00869572 /* ARViewContainer.swift */; };
 		02913F2F27335E5B00869572 /* PlacementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2427335E5B00869572 /* PlacementView.swift */; };
 		02913F3027335E5B00869572 /* PlacementSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2527335E5B00869572 /* PlacementSettings.swift */; };
-		02913F3127335E5B00869572 /* MoldelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2627335E5B00869572 /* MoldelsViewModel.swift */; };
+		02913F3127335E5B00869572 /* ModelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2627335E5B00869572 /* ModelsViewModel.swift */; };
 		02913F3227335E5C00869572 /* SessionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2727335E5B00869572 /* SessionSettings.swift */; };
 		02913F3327335E5C00869572 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2827335E5B00869572 /* SettingsView.swift */; };
 		02913F3427335E5C00869572 /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913F2927335E5B00869572 /* BrowseView.swift */; };
@@ -39,7 +39,7 @@
 		02913F4B273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
 		02913F4C273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
 		02913F4D273360DF00869572 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 02913F4A273360DF00869572 /* GoogleService-Info.plist */; };
-		02E1046127C030DA00BCFF73 /* ModelDelectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046027C030DA00BCFF73 /* ModelDelectionManager.swift */; };
+		02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */; };
 		02E1046327C0379500BCFF73 /* DeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E1046227C0379500BCFF73 /* DeletionView.swift */; };
 		02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E2A8E827BF010C003B9E3B /* ScenePersistenceHelper.swift */; };
 /* End PBXBuildFile section */
@@ -78,7 +78,7 @@
 		02913F2227335E3C00869572 /* ARViewContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ARViewContainer.swift; sourceTree = "<group>"; };
 		02913F2427335E5B00869572 /* PlacementView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlacementView.swift; sourceTree = "<group>"; };
 		02913F2527335E5B00869572 /* PlacementSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlacementSettings.swift; sourceTree = "<group>"; };
-		02913F2627335E5B00869572 /* MoldelsViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MoldelsViewModel.swift; sourceTree = "<group>"; };
+		02913F2627335E5B00869572 /* ModelsViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
 		02913F2727335E5B00869572 /* SessionSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionSettings.swift; sourceTree = "<group>"; };
 		02913F2827335E5B00869572 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		02913F2927335E5B00869572 /* BrowseView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
@@ -88,7 +88,7 @@
 		02913F2D27335E5B00869572 /* View+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		02913F2E27335E5B00869572 /* ControlView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ControlView.swift; sourceTree = "<group>"; };
 		02913F4A273360DF00869572 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		02E1046027C030DA00BCFF73 /* ModelDelectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDelectionManager.swift; sourceTree = "<group>"; };
+		02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDeletionManager.swift; sourceTree = "<group>"; };
 		02E1046227C0379500BCFF73 /* DeletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeletionView.swift; sourceTree = "<group>"; };
 		02E2A8E827BF010C003B9E3B /* ScenePersistenceHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenePersistenceHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -159,8 +159,8 @@
 				02913F0027334C7900869572 /* Info.plist */,
 				02913EF727334C7800869572 /* Little_World_BuilderApp.swift */,
 				02913F2C27335E5B00869572 /* Model.swift */,
-				02E1046027C030DA00BCFF73 /* ModelDelectionManager.swift */,
-				02913F2627335E5B00869572 /* MoldelsViewModel.swift */,
+				02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */,
+				02913F2627335E5B00869572 /* ModelsViewModel.swift */,
 				02913F2527335E5B00869572 /* PlacementSettings.swift */,
 				02913F2427335E5B00869572 /* PlacementView.swift */,
 				02913EFD27334C7900869572 /* Preview Content */,
@@ -353,11 +353,11 @@
 				02913F3327335E5C00869572 /* SettingsView.swift in Sources */,
 				02913F3727335E5C00869572 /* Model.swift in Sources */,
 				02913EFA27334C7800869572 /* ContentView.swift in Sources */,
-				02913F3127335E5B00869572 /* MoldelsViewModel.swift in Sources */,
+				02913F3127335E5B00869572 /* ModelsViewModel.swift in Sources */,
 				02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */,
 				02913EF827334C7800869572 /* Little_World_BuilderApp.swift in Sources */,
 				02913F3527335E5C00869572 /* FirebaseStorageHelper.swift in Sources */,
-				02E1046127C030DA00BCFF73 /* ModelDelectionManager.swift in Sources */,
+				02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */,
 				02913F2F27335E5B00869572 /* PlacementView.swift in Sources */,
 				02913F3827335E5C00869572 /* View+Extensions.swift in Sources */,
 				02913F2327335E3C00869572 /* ARViewContainer.swift in Sources */,
