@@ -35,7 +35,9 @@ struct SavedWorldsView: View {
                 }
                 .padding(24)
             }
-            NavigationLink("", destination: ContentView(loadSavedWorldOnAppear: true), isActive: $navigateToWorld).hidden()
+        }
+        .navigationDestination(isPresented: $navigateToWorld) {
+            ContentView(loadSavedWorldOnAppear: true)
         }
         .id(refreshID)
         .navigationTitle("")
