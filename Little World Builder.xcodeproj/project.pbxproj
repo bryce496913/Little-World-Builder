@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02AATHEMEBUILD000000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AATHEME0000000000000001 /* AppTheme.swift */; };
+		02AAMENUBUILD000000001 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AAMENU0000000000000001 /* MainMenuView.swift */; };
+		02AASAVEDBUILD00000001 /* SavedWorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AASAVED000000000000001 /* SavedWorldsView.swift */; };
 		02LOCALUSDBUNDLE0000000001 /* App Ready USDZ in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALUSDFOLDER0000000001 /* App Ready USDZ */; };
 		02LOCALTHUMBS000000000001 /* Thumbnails in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALTHUMBSFOLDER0000001 /* Thumbnails */; };
 		023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */; };
@@ -55,6 +58,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02AATHEME0000000000000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		02AAMENU0000000000000001 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
+		02AASAVED000000000000001 /* SavedWorldsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorldsView.swift; sourceTree = "<group>"; };
 		02LOCALUSDFOLDER0000000001 /* App Ready USDZ */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "App Ready USDZ"; path = "App Ready USDZ"; sourceTree = SOURCE_ROOT; };
 		02LOCALTHUMBSFOLDER0000001 /* Thumbnails */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Thumbnails; path = Thumbnails; sourceTree = SOURCE_ROOT; };
 		023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
