@@ -7,6 +7,7 @@
 
 import Combine
 import ARKit
+import RealityKit
 
 struct ModelAnchor {
     var model: Model
