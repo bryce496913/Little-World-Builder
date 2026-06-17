@@ -1,31 +1,36 @@
 //
-//  MoldelsViewModel.swift
+//  ModelsViewModel.swift
 //  AR Test
 //
 //  Created by Bryce on 27/08/21.
 //
 
-import Foundation
+import Combine
 import FirebaseFirestore
 
-class ModelsViewModel: ObservableObject {
+final class ModelsViewModel: ObservableObject {
     @Published var models: [Model] = []
     
     private let db = Firestore.firestore()
     
-    func fetchDatat() {
-        db.collection("models").addSnapshotListener { (querySnapshot, error) in
+    func fetchData() {
+        db.collection("models").addSnapshotListener { querySnapshot, error in
+            if let error = error {
+                print("Firestore Error: Unable to fetch models: \(error.localizedDescription)")
+                return
+            }
+
             guard let documents = querySnapshot?.documents else {
-                print("Firestore: No documents.")
+                print("Firestore: No model documents returned.")
                 return
             }
             
-            self.models = documents.map { (queryDocumentSnapshot) -> Model in
+            self.models = documents.map { queryDocumentSnapshot -> Model in
                 let data = queryDocumentSnapshot.data()
                 
                 let name = data["name"] as? String ?? ""
                 let categoryText = data["category"] as? String ?? ""
-                let category = ModelCategory(rawValue: categoryText) ?? .Land
+                let category = ModelCategory(rawValue: categoryText) ?? .land
                 
                 return Model(name: name, category: category)
             }

@@ -5,9 +5,9 @@
 //  Created by Bryce on 24/07/21.
 //
 
-import SwiftUI
+import Combine
 
-class SessionSettings: ObservableObject {
+final class SessionSettings: ObservableObject {
     @Published var isPeopleOcclusionEnabled: Bool = false
     @Published var isObjectOcclusionEnabled: Bool = false
     @Published var isLidarDebugEnabled: Bool = false

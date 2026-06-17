@@ -5,7 +5,6 @@
 //  Created by Bryce on 3/11/21.
 //
 
-import Foundation
 import SwiftUI
 import RealityKit
 import ARKit
@@ -20,12 +19,12 @@ struct ARViewContainer: UIViewRepresentable {
     @EnvironmentObject var modelDeletionManager: ModelDeletionManager
     
     func makeUIView(context: Context) -> CustomARView {
-        let arView = CustomARView(fram: .zero, sessionSettings: sessionSettings, modelDeletionManager: modelDeletionManager)
+        let arView = CustomARView(frame: .zero, sessionSettings: sessionSettings, modelDeletionManager: modelDeletionManager)
         
         arView.session.delegate = context.coordinator
         
         // Subscribe to SceneEvents.Update
-        self.placementSettings.sceneObserver = arView.scene.subscribe(to: SceneEvents.Update.self, { (event) in
+        self.placementSettings.sceneObserver = arView.scene.subscribe(to: SceneEvents.Update.self, { _ in
             self.updateScene(for: arView)
             self.updatePersistenceAvailability(for: arView)
             self.handlePersistence(for: arView)
@@ -48,9 +47,9 @@ struct ARViewContainer: UIViewRepresentable {
                 // Anchor is being loaded from persisted scene
                 self.place(modelEntity, for: anchor, in: arView)
             } else if let transform = getTransformForPlacement(in: arView) {
-            // Anchor needs to be created for placement
+                // Anchor needs to be created for placement
                 let anchorName = anchorNamePrefix + modelAnchor.model.name
-            let anchor = ARAnchor(name: anchorName, transform: transform)
+                let anchor = ARAnchor(name: anchorName, transform: transform)
                 
                 self.place(modelEntity, for: anchor, in: arView)
                 
@@ -138,7 +137,7 @@ extension ARViewContainer {
         } else if self.sceneManager.shouldLoadSceneFromFilesystem {
             
             guard let scenePersistenceData = self.sceneManager.scenePersistenceData else {
-                print("Unable to retrieve scenePersistenceData. Canceled loadScene opration")
+                print("Persistence Error: Unable to retrieve scenePersistenceData. Canceled loadScene operation.")
                 
                 self.sceneManager.shouldLoadSceneFromFilesystem = false
                 
@@ -173,8 +172,8 @@ extension ARViewContainer {
                     
                     print("ARSession: didAdd anchor for modelName: \(modelName)")
                     
-                    guard let model = self.parent.modelsViewModel.models.first(where: { $0.name == modelName}) else {
-                        print("Unable to retrieve model from modelsViewModel.")
+                    guard let model = self.parent.modelsViewModel.models.first(where: { $0.name == modelName }) else {
+                        print("Persistence Error: Unable to retrieve model named \(modelName) from modelsViewModel.")
                         return
                     }
                     
@@ -184,6 +183,8 @@ extension ARViewContainer {
                                 let modelAnchor = ModelAnchor(model: model, anchor: anchor)
                                 self.parent.placementSettings.modelConfirmedForPlacement.append(modelAnchor)
                                 print("Adding modelAnchor with name: \(model.name)")
+                            } else if let error = error {
+                                print("Persistence Error: Unable to load model \(model.name): \(error.localizedDescription)")
                             }
                         }
                     }

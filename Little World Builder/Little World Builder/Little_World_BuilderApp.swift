@@ -21,8 +21,13 @@ struct Little_World_BuilderApp: App {
         
         // Anonymous authentication with Firebase
         Auth.auth().signInAnonymously { authResult, error in
+            if let error = error {
+                print("Firebase Auth Error: Anonymous authentication failed: \(error.localizedDescription)")
+                return
+            }
+
             guard let user = authResult?.user else {
-            print("FAILED: Anonymous Authenticationwith Firebase.")
+                print("Firebase Auth Error: Anonymous authentication completed without a user.")
                 return
             }
             

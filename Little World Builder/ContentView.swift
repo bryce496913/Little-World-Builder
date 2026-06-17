@@ -31,8 +31,8 @@ struct ContentView: View {
             }
         }
         .edgesIgnoringSafeArea(/*@START_MENU_TOKEN@*/.all/*@END_MENU_TOKEN@*/)
-        .onAppear() {
-            self.modelsViewModel.fetchDatat()
+        .onAppear {
+            self.modelsViewModel.fetchData()
         }
     }
 }

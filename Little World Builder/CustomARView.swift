@@ -8,10 +8,9 @@
 import RealityKit
 import ARKit
 import FocusEntity
-import SwiftUI
 import Combine
 
-class CustomARView: ARView {
+final class CustomARView: ARView {
     var focusEntity: FocusEntity?
     var sessionSettings: SessionSettings
     var modelDeletionManager: ModelDeletionManager
@@ -33,7 +32,7 @@ class CustomARView: ARView {
     private var multiuserCancellable: AnyCancellable?
     
     
-    required init(fram frameRect: CGRect, sessionSettings: SessionSettings, modelDeletionManager: ModelDeletionManager) {
+    required init(frame frameRect: CGRect, sessionSettings: SessionSettings, modelDeletionManager: ModelDeletionManager) {
         self.sessionSettings = sessionSettings
         self.modelDeletionManager = modelDeletionManager
         
@@ -133,7 +132,7 @@ class CustomARView: ARView {
 }
 
 
-// MARK: - Object Deltion Methods
+// MARK: - Object Deletion Methods
 
 extension CustomARView {
     func enableObjectDeletion() {
