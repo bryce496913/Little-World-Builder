@@ -24,54 +24,60 @@ enum ModelCategory: String, CaseIterable {
 
 
 final class Model: ObservableObject, Identifiable {
-    let id: String = UUID().uuidString
+    let id: String
     let name: String
     let category: ModelCategory
+    let assetURL: URL
+    let assetFileName: String
     @Published var thumbnail: UIImage
     var modelEntity: ModelEntity?
     let scaleCompensation: Float
     
     private var cancellable: AnyCancellable?
     
-    init(name: String, category: ModelCategory, scaleCompensation: Float = 1.0) {
-        self.name = name
+    init(assetURL: URL, category: ModelCategory, scaleCompensation: Float = 1.0) {
+        self.assetURL = assetURL
+        self.assetFileName = assetURL.lastPathComponent
+        self.id = assetURL.deletingPathExtension().lastPathComponent
+        self.name = Self.displayName(for: self.id)
         self.category = category
-        self.thumbnail = UIImage(systemName: "photo") ?? UIImage()
+        self.thumbnail = Self.loadThumbnail(for: self.id)
         self.scaleCompensation = scaleCompensation
-        
-        FirebaseStorageHelper.asyncDownloadToFilesystem(relativePath: "thumbnails/\(self.name).png") { localUrl in
-            do {
-                let imageData = try Data(contentsOf: localUrl)
-                self.thumbnail = UIImage(data: imageData) ?? self.thumbnail
-            } catch {
-                print("Thumbnail Error: Unable to load image for \(self.name): \(error.localizedDescription)")
-            }
-        }
     }
     
     func asyncLoadModelEntity(handler: @escaping (_ completed: Bool, _ error: Error?) -> Void) {
-        FirebaseStorageHelper.asyncDownloadToFilesystem(relativePath: "models/\(self.name).usdz") { localUrl in
-            self.cancellable = ModelEntity.loadModelAsync(contentsOf: localUrl)
-                .sink(receiveCompletion: { loadCompletion in
-                    
-                    switch loadCompletion {
-                    case .failure(let error):
-                        print("Model Error: Unable to load modelEntity for \(self.name): \(error.localizedDescription)")
-                        handler(false, error)
-                    case .finished:
-                        break
-                    }
-                    
-                }, receiveValue: { modelEntity in
-                    
-                    self.modelEntity = modelEntity
-                    self.modelEntity?.scale *= self.scaleCompensation
-                    
-                    handler(true, nil)
-                    
-                    print("modelEntity for \(self.name) has been loaded.")
-                    
-                })
+        cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL)
+            .sink(receiveCompletion: { loadCompletion in
+                switch loadCompletion {
+                case .failure(let error):
+                    print("Model Error: Unable to load modelEntity for \(self.name) from \(self.assetFileName): \(error.localizedDescription)")
+                    handler(false, error)
+                case .finished:
+                    break
+                }
+            }, receiveValue: { modelEntity in
+                self.modelEntity = modelEntity
+                self.modelEntity?.scale *= self.scaleCompensation
+                handler(true, nil)
+                print("modelEntity for \(self.name) has been loaded from bundled asset \(self.assetFileName).")
+            })
+    }
+    
+    private static func displayName(for identifier: String) -> String {
+        identifier
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
+    }
+    
+    private static func loadThumbnail(for identifier: String) -> UIImage {
+        let possibleNames = [identifier, displayName(for: identifier)]
+        for name in possibleNames {
+            if let image = UIImage(named: name) {
+                return image
+            }
         }
+        return UIImage(systemName: "photo") ?? UIImage()
     }
 }

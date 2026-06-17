@@ -9,7 +9,7 @@ import SwiftUI
 import RealityKit
 import ARKit
 
-private let anchorNamePrefix = "model-"
+let anchorNamePrefix = "model-"
 
 struct ARViewContainer: UIViewRepresentable {
     @EnvironmentObject var placementSettings: PlacementSettings
@@ -45,13 +45,13 @@ struct ARViewContainer: UIViewRepresentable {
             
             if let anchor = modelAnchor.anchor {
                 // Anchor is being loaded from persisted scene
-                self.place(modelEntity, for: anchor, in: arView)
+                self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: modelAnchor.modelTransform, in: arView)
             } else if let transform = getTransformForPlacement(in: arView) {
                 // Anchor needs to be created for placement
-                let anchorName = anchorNamePrefix + modelAnchor.model.name
+                let anchorName = anchorNamePrefix + modelAnchor.model.id
                 let anchor = ARAnchor(name: anchorName, transform: transform)
                 
-                self.place(modelEntity, for: anchor, in: arView)
+                self.place(modelEntity, for: modelAnchor.model, anchor: anchor, modelTransform: nil, in: arView)
                 
                 arView.session.add(anchor: anchor)
                 
@@ -60,9 +60,14 @@ struct ARViewContainer: UIViewRepresentable {
         }
     }
     
-    private func place(_ modelEntity: ModelEntity, for anchor: ARAnchor, in arView: ARView) {
+    private func place(_ modelEntity: ModelEntity, for model: Model, anchor: ARAnchor, modelTransform: Transform?, in arView: ARView) {
         //1. Clone modelEntity. This creates an identical copy of modelEntity and references the same model. This also allows us to have multiple models of the same asset in our scene.
         let clonedEntity = modelEntity.clone(recursive: true)
+        clonedEntity.name = model.id
+        clonedEntity.components.set(LocalModelComponent(modelIdentifier: model.id, assetFileName: model.assetFileName))
+        if let modelTransform = modelTransform {
+            clonedEntity.transform = modelTransform
+        }
         
         //2. Enable translation and rotation gestures.
         clonedEntity.generateCollisionShapes(recursive: true)
@@ -103,7 +108,7 @@ class SceneManager: ObservableObject {
     
     lazy var persistenceUrl: URL = {
         do {
-            return try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("arf.persistence")
+            return try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("SavedScene.json")
         } catch {
             fatalError("Unable to get persistenceUrl: \(error.localizedDescription)")
         }
@@ -131,7 +136,7 @@ extension ARViewContainer {
     
     private func handlePersistence(for arView: CustomARView) {
         if self.sceneManager.shouldSaveSceneToFilesystem {
-            ScenePersistenceHelper.saveScene(for: arView, at: self.sceneManager.persistenceUrl)
+            ScenePersistenceHelper.saveScene(for: arView, sceneManager: self.sceneManager, at: self.sceneManager.persistenceUrl)
             
             self.sceneManager.shouldSaveSceneToFilesystem = false
         } else if self.sceneManager.shouldLoadSceneFromFilesystem {
@@ -148,7 +153,7 @@ extension ARViewContainer {
             
             self.sceneManager.anchorEntities.removeAll(keepingCapacity: true)
 
-            ScenePersistenceHelper.loadScene(for: arView, with: scenePersistenceData)
+            ScenePersistenceHelper.loadScene(from: scenePersistenceData, modelsViewModel: self.modelsViewModel, placementSettings: self.placementSettings)
                         
             self.sceneManager.shouldLoadSceneFromFilesystem = false
         }
@@ -168,11 +173,11 @@ extension ARViewContainer {
         func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
             for anchor in anchors {
                 if let anchorName = anchor.name, anchorName.hasPrefix(anchorNamePrefix) {
-                    let modelName = anchorName.dropFirst(anchorNamePrefix.count)
+                    let modelName = String(anchorName.dropFirst(anchorNamePrefix.count))
                     
                     print("ARSession: didAdd anchor for modelName: \(modelName)")
                     
-                    guard let model = self.parent.modelsViewModel.models.first(where: { $0.name == modelName }) else {
+                    guard let model = self.parent.modelsViewModel.model(matching: modelName) else {
                         print("Persistence Error: Unable to retrieve model named \(modelName) from modelsViewModel.")
                         return
                     }

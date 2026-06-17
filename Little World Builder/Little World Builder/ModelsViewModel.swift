@@ -6,40 +6,48 @@
 //
 
 import Combine
-import FirebaseFirestore
+import Foundation
 
 final class ModelsViewModel: ObservableObject {
     @Published var models: [Model] = []
     
-    private let db = Firestore.firestore()
-    
     func fetchData() {
-        db.collection("models").addSnapshotListener { querySnapshot, error in
-            if let error = error {
-                print("Firestore Error: Unable to fetch models: \(error.localizedDescription)")
-                return
+        let assetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: "App Ready USDZ") ?? []
+        let fallbackAssetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) ?? []
+        let discoveredURLs = assetURLs.isEmpty ? fallbackAssetURLs : assetURLs
+        
+        let localModels = discoveredURLs
+            .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
+            .map { assetURL in
+                Model(assetURL: assetURL, category: Self.category(for: assetURL.deletingPathExtension().lastPathComponent))
             }
-
-            guard let documents = querySnapshot?.documents else {
-                print("Firestore: No model documents returned.")
-                return
-            }
-            
-            self.models = documents.map { queryDocumentSnapshot -> Model in
-                let data = queryDocumentSnapshot.data()
-                
-                let name = data["name"] as? String ?? ""
-                let categoryText = data["category"] as? String ?? ""
-                let category = ModelCategory(rawValue: categoryText) ?? .land
-                
-                return Model(name: name, category: category)
-            }
+        
+        if localModels.isEmpty {
+            print("Local Asset Error: No bundled USDZ files were found. Confirm the App Ready USDZ folder is included in the app target resources.")
+        } else {
+            print("Local Assets: Loaded \(localModels.count) bundled USDZ model definitions.")
         }
+        
+        self.models = localModels
+    }
+    
+    func model(matching identifier: String) -> Model? {
+        models.first { $0.id == identifier || $0.assetFileName == identifier || $0.name == identifier }
     }
     
     func clearModelEntitiesFromMemory() {
         for model in models {
             model.modelEntity = nil
         }
+    }
+    
+    private static func category(for identifier: String) -> ModelCategory {
+        let text = identifier.lowercased()
+        if text.contains("water") { return .water }
+        if text.contains("tree") { return .trees }
+        if text.contains("manta") || text.contains("whale") { return .creatures }
+        if text.contains("plane") { return .vehicles }
+        if text.contains("island") { return .island }
+        return .land
     }
 }
