@@ -86,7 +86,12 @@ struct ARViewContainer: UIViewRepresentable {
         //1. Clone modelEntity. This creates an identical copy of modelEntity and references the same model. This also allows us to have multiple models of the same asset in our scene.
         let clonedEntity = modelEntity.clone(recursive: true)
         clonedEntity.name = model.id
-        clonedEntity.components.set(LocalModelComponent(modelIdentifier: model.id, assetFileName: model.assetFileName))
+        clonedEntity.components.set(LocalModelComponent(
+            modelIdentifier: model.id,
+            assetFileName: model.assetFileName,
+            displayName: model.name,
+            category: model.category.rawValue
+        ))
         if let modelTransform = modelTransform {
             clonedEntity.transform = modelTransform
         }
@@ -120,7 +125,9 @@ class SceneManager: ObservableObject {
         do {
             return try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("SavedScene.json")
         } catch {
-            fatalError("Unable to get persistenceUrl: \(error.localizedDescription)")
+            let fallbackUrl = FileManager.default.temporaryDirectory.appendingPathComponent("SavedScene.json")
+            print("Persistence Error: Unable to get documents directory: \(error.localizedDescription). Falling back to \(fallbackUrl.path).")
+            return fallbackUrl
         }
     }()
     
@@ -220,6 +227,10 @@ extension ARViewContainer {
                                 print("Persistence Error: Unable to load model \(model.name): \(error.localizedDescription)")
                             }
                         }
+                    } else {
+                        let modelAnchor = ModelAnchor(model: model, anchor: anchor)
+                        self.parent.placementSettings.modelConfirmedForPlacement.append(modelAnchor)
+                        print("Adding already loaded modelAnchor with name: \(model.name)")
                     }
                 }
             }
