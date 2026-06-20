@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+			02A771E027C8000100ABCDEF /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A771D027C8000100ABCDEF /* AppTheme.swift */; };
+			02A771E127C8000100ABCDEF /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A771D127C8000100ABCDEF /* MainMenuView.swift */; };
+			02A771E227C8000100ABCDEF /* SavedWorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A771D227C8000100ABCDEF /* SavedWorldsView.swift */; };
 		02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */; };
 		023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */; };
 		028E1FF827C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
@@ -53,6 +56,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02A771D027C8000100ABCDEF /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		02A771D127C8000100ABCDEF /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
+		02A771D227C8000100ABCDEF /* SavedWorldsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorldsView.swift; sourceTree = "<group>"; };
 		02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlacementManager.swift; sourceTree = "<group>"; };
 		023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		028E1FF727C2D18D0040360B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = "Little World BuilderUITests/Info.plist"; sourceTree = SOURCE_ROOT; };
@@ -132,6 +138,9 @@
 			isa = PBXGroup;
 			children = (
 				02913F2227335E3C00869572 /* ARViewContainer.swift */,
+				02A771D027C8000100ABCDEF /* AppTheme.swift */,
+				02A771D127C8000100ABCDEF /* MainMenuView.swift */,
+				02A771D227C8000100ABCDEF /* SavedWorldsView.swift */,
 				02913EFB27334C7900869572 /* Assets.xcassets */,
 				02913F2927335E5B00869572 /* BrowseView.swift */,
 				02913EF927334C7800869572 /* ContentView.swift */,
@@ -321,6 +330,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				02913F3227335E5C00869572 /* SessionSettings.swift in Sources */,
+				02A771E027C8000100ABCDEF /* AppTheme.swift in Sources */,
+				02A771E127C8000100ABCDEF /* MainMenuView.swift in Sources */,
+				02A771E227C8000100ABCDEF /* SavedWorldsView.swift in Sources */,
 				02913F3427335E5C00869572 /* BrowseView.swift in Sources */,
 				02913F3327335E5C00869572 /* SettingsView.swift in Sources */,
 				02913F3727335E5C00869572 /* Model.swift in Sources */,

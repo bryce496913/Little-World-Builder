@@ -1,10 +1,3 @@
-//
-//  SettingsView.swift
-//  AR Test
-//
-//  Created by Bryce on 24/07/21.
-//
-
 import SwiftUI
 
 enum Setting {
@@ -12,102 +5,91 @@ enum Setting {
     case objectOcclusion
     case lidarDebug
     case multiuser
-    
+
     var label: String {
-        get {
-            switch self {
-            case .peopleOcclusion, .objectOcclusion:
-                return "Occlusion"
-            case .lidarDebug:
-                return "LiDAR"
-            case .multiuser:
-                return "Multiuser"
-            }
+        switch self {
+        case .peopleOcclusion: return "People"
+        case .objectOcclusion: return "Objects"
+        case .lidarDebug: return "LiDAR"
+        case .multiuser: return "Multiuser"
         }
     }
-    
+
+    var detail: String {
+        switch self {
+        case .peopleOcclusion: return "Hide models behind people."
+        case .objectOcclusion: return "Blend models with real objects."
+        case .lidarDebug: return "Show scene mesh debug."
+        case .multiuser: return "Keep existing shared-session toggle."
+        }
+    }
+
     var systemIconName: String {
-        get {
-            switch self {
-            case .peopleOcclusion:
-                return "person"
-            case .objectOcclusion:
-                return "cube.box.fill"
-            case .lidarDebug:
-                return "light.min"
-            case .multiuser:
-                return "person.2"
-            }
+        switch self {
+        case .peopleOcclusion: return "person"
+        case .objectOcclusion: return "cube.box.fill"
+        case .lidarDebug: return "light.min"
+        case .multiuser: return "person.2"
         }
     }
 }
 
 struct SettingsView: View {
-    @Binding var showSettings: Bool
-    
     var body: some View {
-        NavigationView {
-            SettingsGrid()
-                .navigationBarTitle(Text("Settings"), displayMode: .inline)
-                .navigationBarItems(trailing:
-                    Button(action: {
-                        self.showSettings.toggle()
-                    }) {
-                        Text("Done").bold()
-                    })
-                    
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    AppScreenHeader("Settings", subtitle: "Tune the AR view while keeping your worlds local.")
+                    SettingsGrid()
+                }
+                .padding(24)
+            }
         }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 struct SettingsGrid: View {
     @EnvironmentObject var sessionSettings: SessionSettings
-    
-    private var gridItemLayout = [GridItem(.adaptive(minimum: 100, maximum: 100), spacing: 25)]
-    
+
     var body: some View {
-        ScrollView {
-            
-            LazyVGrid(columns: gridItemLayout, spacing: 25) {
-                
-                SettingToggleButton(setting: .peopleOcclusion, isOn: $sessionSettings.isPeopleOcclusionEnabled)
-                
-                SettingToggleButton(setting: .objectOcclusion, isOn: $sessionSettings.isObjectOcclusionEnabled)
-                
-                SettingToggleButton(setting: .lidarDebug, isOn: $sessionSettings.isLidarDebugEnabled)
-                
-                SettingToggleButton(setting: .multiuser, isOn: $sessionSettings.isMultiuserEnabled)
-            }
+        VStack(spacing: 14) {
+            SettingToggleButton(setting: .peopleOcclusion, isOn: $sessionSettings.isPeopleOcclusionEnabled)
+            SettingToggleButton(setting: .objectOcclusion, isOn: $sessionSettings.isObjectOcclusionEnabled)
+            SettingToggleButton(setting: .lidarDebug, isOn: $sessionSettings.isLidarDebugEnabled)
+            SettingToggleButton(setting: .multiuser, isOn: $sessionSettings.isMultiuserEnabled)
         }
-        .padding(.top, 25)
     }
 }
 
 struct SettingToggleButton: View {
     let setting: Setting
     @Binding var isOn: Bool
-    
+
     var body: some View {
         Button(action: {
             self.isOn.toggle()
             print("\(#file) - \(setting): \(self.isOn)")
         }) {
-            VStack {
-                
-                Image(systemName: setting.systemIconName)
-                    .font(.system(size: 35))
-                    .foregroundColor(self.isOn ? .green : Color(UIColor.secondaryLabel))
-                    .buttonStyle(PlainButtonStyle())
-                
-                Text(setting.label)
-                    .font(.system(size: 17, weight: .medium, design: .default))
-                    .foregroundColor(self.isOn ? Color(UIColor.label) : Color(UIColor.secondaryLabel))
-                    .padding(.top, 5)
+            AppSurface(borderColor: isOn ? AppTheme.highlight : AppTheme.accent.opacity(0.45)) {
+                HStack(spacing: 14) {
+                    Image(systemName: setting.systemIconName)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(isOn ? AppTheme.highlight : AppTheme.accent)
+                        .frame(width: 42, height: 42)
+                        .background((isOn ? AppTheme.highlight : AppTheme.accent).opacity(0.16))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(setting.label).appText(.h2)
+                        Text(setting.detail).appText(.paragraph, color: AppTheme.mutedText)
+                    }
+                    Spacer()
+                    Text(isOn ? "On" : "Off").appText(.h3, color: isOn ? AppTheme.highlight : AppTheme.mutedText)
+                }
             }
         }
-        .frame(width: 100, height: /*@START_MENU_TOKEN@*/100/*@END_MENU_TOKEN@*/)
-        .background(Color(UIColor.secondarySystemFill))
-        .cornerRadius(20.0)
-        
+        .buttonStyle(.plain)
     }
 }
