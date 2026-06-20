@@ -1,4 +1,5 @@
 import SwiftUI
+import RealityKit
 
 struct DeletionView: View {
     @EnvironmentObject var sceneManager: SceneManager
@@ -12,7 +13,7 @@ struct DeletionView: View {
                     self.modelDeletionManager.entitySelectedForDeletion = nil
                 }
                 AppButton("Delete", systemImage: "trash", style: .destructive) {
-                    guard let anchor = self.modelDeletionManager.entitySelectedForDeletion?.anchor else { return }
+                    guard let anchor = self.modelDeletionManager.entitySelectedForDeletion?.anchor as? AnchorEntity else { return }
                     self.sceneManager.removeAnchorEntity(anchor)
                     self.modelDeletionManager.entitySelectedForDeletion = nil
                 }
