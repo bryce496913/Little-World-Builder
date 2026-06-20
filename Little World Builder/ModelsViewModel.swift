@@ -56,10 +56,10 @@ final class ModelsViewModel: ObservableObject {
         let text = identifier.lowercased()
         if text.contains("water") { return .water }
         if text.contains("tree") { return .trees }
-        if text.contains("manta") || text.contains("whale") { return .animals }
-        if text.contains("plane") { return .misc }
-        if text.contains("rock") { return .rocks }
-        if text.contains("island") || text.contains("mount") { return .land }
-        return .land
+        if text.contains("manta") || text.contains("whale") { return .creatures }
+        if text.contains("plane") { return .vehicles }
+        if text.contains("island") { return .island }
+        if text.contains("mount") || text.contains("rock") || text.contains("land") { return .land }
+        return .misc
     }
 }
