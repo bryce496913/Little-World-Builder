@@ -113,37 +113,44 @@ final class CustomARView: ARView {
             return
         }
         
-        if configuration.frameSemantics.contains(.personSegmentationWithDepth) {
-            configuration.frameSemantics.remove(.personSegmentationWithDepth)
-        } else {
+        if isEnabled {
             configuration.frameSemantics.insert(.personSegmentationWithDepth)
+        } else {
+            configuration.frameSemantics.remove(.personSegmentationWithDepth)
         }
         
         self.session.run(configuration)
-}
+    }
     
     private func updateObjectOcclusion(isEnabled: Bool) {
         print("\(#file): isObjectOcclusionEnabled is now \(isEnabled)")
         
-        if self.environment.sceneUnderstanding.options.contains(.occlusion) {
-            self.environment.sceneUnderstanding.options.remove(.occlusion)
-        } else {
+        if isEnabled {
             self.environment.sceneUnderstanding.options.insert(.occlusion)
+        } else {
+            self.environment.sceneUnderstanding.options.remove(.occlusion)
         }
     }
     
     private func updateLidarDebug(isEnabled: Bool) {
         print("\(#file): isLidarDebugEnabled is now \(isEnabled)")
         
-        if self.debugOptions.contains(.showSceneUnderstanding) {
-            self.debugOptions.remove(.showSceneUnderstanding)
-        } else {
+        if isEnabled {
             self.debugOptions.insert(.showSceneUnderstanding)
+        } else {
+            self.debugOptions.remove(.showSceneUnderstanding)
         }
     }
     
     private func updateMultiuser(isEnabled: Bool) {
         print("\(#file): isMultiuserEnabled is now \(isEnabled)")
+
+        guard let configuration = self.session.configuration as? ARWorldTrackingConfiguration else {
+            return
+        }
+
+        configuration.isCollaborationEnabled = isEnabled
+        self.session.run(configuration)
     }
 }
 
