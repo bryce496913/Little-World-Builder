@@ -9,21 +9,27 @@ import Combine
 import Foundation
 
 final class ModelsViewModel: ObservableObject {
+    private static let appReadyUSDZSubdirectory = "App Ready USDZ"
+
     @Published var models: [Model] = []
     
     func fetchData() {
-        let assetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: "App Ready USDZ") ?? []
+        let assetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: Self.appReadyUSDZSubdirectory) ?? []
         let fallbackAssetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) ?? []
         let discoveredURLs = assetURLs.isEmpty ? fallbackAssetURLs : assetURLs
         
         let localModels = discoveredURLs
             .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
             .map { assetURL in
-                Model(assetURL: assetURL, category: Self.category(for: assetURL.deletingPathExtension().lastPathComponent))
+                Model(
+                    assetURL: assetURL,
+                    category: Self.category(for: assetURL.deletingPathExtension().lastPathComponent),
+                    scaleCompensation: Self.scaleCompensation(for: assetURL.lastPathComponent)
+                )
             }
         
         if localModels.isEmpty {
-            print("Local Asset Error: No bundled USDZ files were found. Confirm the App Ready USDZ folder is included in the app target resources.")
+            print("Local Asset Error: No bundled USDZ files were found. Confirm the \(Self.appReadyUSDZSubdirectory) folder is included in the app target resources.")
         } else {
             print("Local Assets: Loaded \(localModels.count) bundled USDZ model definitions.")
         }
@@ -41,6 +47,11 @@ final class ModelsViewModel: ObservableObject {
         }
     }
     
+    private static func scaleCompensation(for assetFileName: String) -> Float {
+        // Local App Ready USDZ files are authored at app-ready scale unless a per-file override is added here.
+        1.0
+    }
+
     private static func category(for identifier: String) -> ModelCategory {
         let text = identifier.lowercased()
         if text.contains("water") { return .water }
