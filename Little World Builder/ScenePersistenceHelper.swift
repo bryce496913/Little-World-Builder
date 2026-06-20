@@ -9,9 +9,10 @@ import Foundation
 import RealityKit
 import ARKit
 
-struct PersistedModelPlacement: Codable {
+struct PersistedPlacedModel: Codable, Identifiable {
+    let id: UUID
     let modelIdentifier: String
-    let modelFileName: String
+    let modelAssetFileName: String
     let displayName: String?
     let category: String?
     let anchorTransform: [Float]
@@ -19,12 +20,57 @@ struct PersistedModelPlacement: Codable {
     let position: [Float]
     let scale: [Float]
     let rotation: [Float]
+
+    var modelFileName: String { modelAssetFileName }
 }
 
-struct PersistedScene: Codable {
+typealias PersistedModelPlacement = PersistedPlacedModel
+
+struct PersistedScene: Codable, Identifiable {
+    let id: UUID
     let version: Int
+    let title: String
     let savedAt: Date
-    let placements: [PersistedModelPlacement]
+    let placements: [PersistedPlacedModel]
+
+    var name: String { title }
+    var placedModelCount: Int { placements.count }
+}
+
+final class LocalSavedWorldStore {
+    static let shared = LocalSavedWorldStore()
+
+    private init() {}
+
+    func defaultSceneURL() -> URL {
+        do {
+            return try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("SavedScene.json")
+        } catch {
+            let fallbackUrl = FileManager.default.temporaryDirectory.appendingPathComponent("SavedScene.json")
+            print("Persistence Error: Unable to get documents directory: \(error.localizedDescription). Falling back to \(fallbackUrl.path).")
+            return fallbackUrl
+        }
+    }
+
+    func loadScene(at url: URL) -> PersistedScene? {
+        do {
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode(PersistedScene.self, from: data)
+        } catch {
+            print("Persistence Error: Unable to load saved world at \(url.path): \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func deleteScene(at url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            try FileManager.default.removeItem(at: url)
+            print("Persistence: Deleted saved scene at \(url.path).")
+        } catch {
+            print("Persistence Error: Unable to delete saved scene: \(error.localizedDescription)")
+        }
+    }
 }
 
 final class ScenePersistenceHelper {
@@ -45,9 +91,10 @@ final class ScenePersistenceHelper {
             
             let metadata = modelEntity.components[LocalModelComponent.self]
             let fileName = metadata?.assetFileName ?? "\(identifier).usdz"
-            return PersistedModelPlacement(
+            return PersistedPlacedModel(
+                id: UUID(),
                 modelIdentifier: metadata?.modelIdentifier ?? identifier,
-                modelFileName: fileName,
+                modelAssetFileName: fileName,
                 displayName: metadata?.displayName ?? identifier,
                 category: metadata?.category ?? ModelCategory.misc.rawValue,
                 anchorTransform: anchorEntity.transformMatrix(relativeTo: nil).flatArray,
@@ -58,7 +105,7 @@ final class ScenePersistenceHelper {
             )
         }
         
-        let scene = PersistedScene(version: 1, savedAt: Date(), placements: placements)
+        let scene = PersistedScene(id: UUID(), version: 1, title: "Saved World", savedAt: Date(), placements: placements)
         
         do {
             let sceneData = try JSONEncoder().encode(scene)
@@ -75,8 +122,8 @@ final class ScenePersistenceHelper {
         do {
             let persistedScene = try JSONDecoder().decode(PersistedScene.self, from: scenePersistenceData)
             for placement in persistedScene.placements {
-                guard let model = modelsViewModel.model(matching: placement.modelIdentifier) ?? modelsViewModel.model(matching: placement.modelFileName) else {
-                    print("Persistence Warning: Missing bundled model for saved placement \(placement.modelIdentifier) / \(placement.modelFileName). Skipping placement.")
+                guard let model = modelsViewModel.model(matching: placement.modelIdentifier) ?? modelsViewModel.model(matching: placement.modelAssetFileName) else {
+                    print("Persistence Warning: Missing bundled model for saved placement \(placement.modelIdentifier) / \(placement.modelAssetFileName). Skipping placement.")
                     continue
                 }
                 

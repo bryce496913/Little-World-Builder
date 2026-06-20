@@ -124,28 +124,14 @@ class SceneManager: ObservableObject {
     var shouldSaveSceneToFilesystem: Bool = false // Flag to trigger save scene to filesystem function
     var shouldLoadSceneFromFilesystem: Bool = false // Flag to trigger load scene from filesystem function
     
-    lazy var persistenceUrl: URL = {
-        do {
-            return try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("SavedScene.json")
-        } catch {
-            let fallbackUrl = FileManager.default.temporaryDirectory.appendingPathComponent("SavedScene.json")
-            print("Persistence Error: Unable to get documents directory: \(error.localizedDescription). Falling back to \(fallbackUrl.path).")
-            return fallbackUrl
-        }
-    }()
+    lazy var persistenceUrl: URL = LocalSavedWorldStore.shared.defaultSceneURL()
     
     var scenePersistenceData: Data? {
         return try? Data(contentsOf: persistenceUrl)
     }
 
     func deleteSavedScene() {
-        guard FileManager.default.fileExists(atPath: persistenceUrl.path) else { return }
-        do {
-            try FileManager.default.removeItem(at: persistenceUrl)
-            print("Persistence: Deleted saved scene at \(persistenceUrl.path).")
-        } catch {
-            print("Persistence Error: Unable to delete saved scene: \(error.localizedDescription)")
-        }
+        LocalSavedWorldStore.shared.deleteScene(at: persistenceUrl)
     }
 
     func removeAnchorEntity(_ anchorEntity: AnchorEntity) {

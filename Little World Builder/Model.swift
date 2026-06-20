@@ -10,12 +10,12 @@ import RealityKit
 import Combine
 
 enum ModelCategory: String, CaseIterable {
+    case land = "Land"
+    case island = "Island"
     case water = "Water"
     case trees = "Trees"
-    case land = "Land"
-    case rocks = "Rocks"
-    case animals = "Animals"
-    case buildings = "Buildings"
+    case creatures = "Creatures"
+    case vehicles = "Vehicles"
     case misc = "Misc"
     
     var label: String {

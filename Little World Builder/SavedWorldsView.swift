@@ -62,9 +62,9 @@ struct SavedWorldInfo {
     init?(url: URL) {
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         self.url = url
-        if let data = try? Data(contentsOf: url), let scene = try? JSONDecoder().decode(PersistedScene.self, from: data) {
+        if let scene = LocalSavedWorldStore.shared.loadScene(at: url) {
             self.savedAt = scene.savedAt
-            self.modelCount = scene.placements.count
+            self.modelCount = scene.placedModelCount
         } else {
             self.savedAt = nil
             self.modelCount = nil
