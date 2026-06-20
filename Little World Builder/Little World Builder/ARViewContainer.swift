@@ -22,6 +22,7 @@ struct ARViewContainer: UIViewRepresentable {
         let arView = CustomARView(frame: .zero, sessionSettings: sessionSettings, modelDeletionManager: modelDeletionManager)
         
         arView.session.delegate = context.coordinator
+        sceneManager.arView = arView
         
         // Subscribe to SceneEvents.Update
         self.placementSettings.sceneObserver = arView.scene.subscribe(to: SceneEvents.Update.self, { _ in
@@ -113,6 +114,8 @@ class SceneManager: ObservableObject {
     @Published var isPersistenceAvailable: Bool = false
     @Published var anchorEntities: [AnchorEntity] = [] // Keeps track of anchorEntities (w/ modelEntities) in the scene
     
+    weak var arView: CustomARView?
+    
     var shouldSaveSceneToFilesystem: Bool = false // Flag to trigger save scene to filesystem function
     var shouldLoadSceneFromFilesystem: Bool = false // Flag to trigger load scene from filesystem function
     
@@ -138,12 +141,34 @@ class SceneManager: ObservableObject {
         }
     }
 
+    func removeAnchorEntity(_ anchorEntity: AnchorEntity) {
+        if let index = anchorEntities.firstIndex(where: { $0 === anchorEntity }) {
+            anchorEntities.remove(at: index)
+        } else if let anchoringIdentifier = anchorEntity.anchorIdentifier,
+                  let index = anchorEntities.firstIndex(where: { $0.anchorIdentifier == anchoringIdentifier }) {
+            anchorEntities.remove(at: index)
+        }
+
+        removeARSessionAnchor(for: anchorEntity)
+        anchorEntity.removeFromParent()
+    }
+
     func clearCurrentScene() {
-        for anchorEntity in anchorEntities {
+        let anchorsToRemove = anchorEntities
+        for anchorEntity in anchorsToRemove {
             print("Removing anchorEntity with id: \(String(describing: anchorEntity.anchorIdentifier))")
-            anchorEntity.removeFromParent()
+            removeAnchorEntity(anchorEntity)
         }
         anchorEntities.removeAll(keepingCapacity: true)
+    }
+
+    private func removeARSessionAnchor(for anchorEntity: AnchorEntity) {
+        guard let anchoringIdentifier = anchorEntity.anchorIdentifier,
+              let sessionAnchor = arView?.session.currentFrame?.anchors.first(where: { $0.identifier == anchoringIdentifier }) else {
+            return
+        }
+
+        arView?.session.remove(anchor: sessionAnchor)
     }
 }
 
@@ -178,8 +203,7 @@ extension ARViewContainer {
             }
             
             self.modelsViewModel.clearModelEntitiesFromMemory()
-            
-            self.sceneManager.anchorEntities.removeAll(keepingCapacity: true)
+            self.sceneManager.clearCurrentScene()
 
             ScenePersistenceHelper.loadScene(from: scenePersistenceData, modelsViewModel: self.modelsViewModel, placementSettings: self.placementSettings)
                         
