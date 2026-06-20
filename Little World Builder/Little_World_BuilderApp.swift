@@ -14,6 +14,7 @@ struct Little_World_BuilderApp: App {
     @StateObject var sceneManager = SceneManager()
     @StateObject var modelsViewModel = ModelsViewModel()
     @StateObject var modelDeletionManager = ModelDeletionManager()
+    @StateObject var islandManager = IslandManager()
     
     var body: some Scene {
         WindowGroup {
@@ -23,6 +24,7 @@ struct Little_World_BuilderApp: App {
                 .environmentObject(sceneManager)
                 .environmentObject(modelsViewModel)
                 .environmentObject(modelDeletionManager)
+                .environmentObject(islandManager)
         }
     }
 }

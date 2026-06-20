@@ -9,17 +9,31 @@ import SwiftUI
 import RealityKit
 import Combine
 
-enum ModelCategory: String, CaseIterable {
-    case land = "Land"
-    case island = "Island"
-    case water = "Water"
-    case trees = "Trees"
-    case creatures = "Creatures"
-    case vehicles = "Vehicles"
-    case misc = "Misc"
-    
+enum ModelCategory: String, CaseIterable, Codable {
+    case land
+    case island
+    case water
+    case trees
+    case plants
+    case animals
+    case seaCreatures
+    case rocksDecor
+    case vehicles
+    case misc
+
     var label: String {
-        rawValue
+        switch self {
+        case .land: return "Land"
+        case .island: return "Island"
+        case .water: return "Water"
+        case .trees: return "Trees"
+        case .plants: return "Plants"
+        case .animals: return "Animals"
+        case .seaCreatures: return "Sea Creatures"
+        case .rocksDecor: return "Rocks & Decor"
+        case .vehicles: return "Vehicles"
+        case .misc: return "Misc"
+        }
     }
 }
 

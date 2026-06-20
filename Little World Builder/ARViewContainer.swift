@@ -17,6 +17,7 @@ struct ARViewContainer: UIViewRepresentable {
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var modelsViewModel: ModelsViewModel
     @EnvironmentObject var modelDeletionManager: ModelDeletionManager
+    @EnvironmentObject var islandManager: IslandManager
     
     func makeUIView(context: Context) -> CustomARView {
         let arView = CustomARView(frame: .zero, sessionSettings: sessionSettings, modelDeletionManager: modelDeletionManager)
@@ -38,13 +39,20 @@ struct ARViewContainer: UIViewRepresentable {
     
     private func updateScene(for arView: CustomARView) {
         
-        arView.nativePlacementManager.update(in: arView, isPlacementActive: self.placementSettings.selectedModel != nil)
+        arView.nativePlacementManager.update(in: arView, isPlacementActive: self.placementSettings.selectedModel != nil || (self.islandManager.activeIsland != nil && !self.islandManager.isIslandRootPlaced))
         self.placementSettings.isPlacementAvailable = arView.nativePlacementManager.isPlacementAvailable
         self.placementSettings.placementStatusMessage = arView.nativePlacementManager.isPlacementAvailable ? "Ready to place" : "Scan a surface"
         
         // Add model(s) to scene if confirmed for placement.
         // Keep this after the native placement update so a Place tap uses the freshest
         // center-screen raycast transform while the selected model is still active.
+        if self.placementSettings.shouldPlaceIslandRoot {
+            if let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() {
+                self.islandManager.placeIslandRoot(on: anchorEntity, in: arView)
+                self.sceneManager.anchorEntities.append(anchorEntity)
+            }
+            self.placementSettings.shouldPlaceIslandRoot = false
+        }
         if let modelAnchor = self.placementSettings.modelConfirmedForPlacement.popLast() {
             self.placeConfirmed(modelAnchor, in: arView)
         }
@@ -67,9 +75,17 @@ struct ARViewContainer: UIViewRepresentable {
             return
         }
 
-        anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
-        print("Placement: placing \(modelAnchor.model.name) from \(modelAnchor.model.assetURL.lastPathComponent).")
-        self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
+        if self.islandManager.activeIsland != nil && !self.islandManager.isIslandRootPlaced {
+            self.islandManager.placeIslandRoot(on: anchorEntity, in: arView)
+            self.sceneManager.anchorEntities.append(anchorEntity)
+            self.islandManager.addChildAsset(modelAnchor.model, modelEntity: modelEntity, worldTransform: arView.nativePlacementManager.latestPlacementTransform ?? matrix_identity_float4x4, in: arView)
+        } else if self.islandManager.isIslandRootPlaced {
+            self.islandManager.addChildAsset(modelAnchor.model, modelEntity: modelEntity, worldTransform: arView.nativePlacementManager.latestPlacementTransform ?? matrix_identity_float4x4, in: arView)
+        } else {
+            anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
+            print("Placement: placing \(modelAnchor.model.name) from \(modelAnchor.model.assetURL.lastPathComponent).")
+            self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
+        }
         self.placementSettings.recentlyPlaced.append(modelAnchor.model)
 
         if self.placementSettings.selectedModel?.id == modelAnchor.model.id {
@@ -182,12 +198,12 @@ extension ARViewContainer {
     
     private func handlePersistence(for arView: CustomARView) {
         if self.sceneManager.shouldSaveSceneToFilesystem {
-            ScenePersistenceHelper.saveScene(for: arView, sceneManager: self.sceneManager, at: self.sceneManager.persistenceUrl)
+            self.islandManager.saveActiveIsland()
             
             self.sceneManager.shouldSaveSceneToFilesystem = false
         } else if self.sceneManager.shouldLoadSceneFromFilesystem {
             
-            guard let scenePersistenceData = self.sceneManager.scenePersistenceData else {
+            guard self.islandManager.activeIsland != nil else {
                 print("Persistence Error: Unable to retrieve scenePersistenceData. Canceled loadScene operation.")
                 
                 self.sceneManager.shouldLoadSceneFromFilesystem = false
@@ -198,7 +214,9 @@ extension ARViewContainer {
             self.modelsViewModel.clearModelEntitiesFromMemory()
             self.sceneManager.clearCurrentScene()
 
-            ScenePersistenceHelper.loadScene(from: scenePersistenceData, modelsViewModel: self.modelsViewModel, placementSettings: self.placementSettings)
+            self.islandManager.rebuildActiveIslandRoot(using: self.modelsViewModel) { rebuilt in
+                if !rebuilt { print("Island Error: Unable to rebuild saved island root.") }
+            }
                         
             self.sceneManager.shouldLoadSceneFromFilesystem = false
         }

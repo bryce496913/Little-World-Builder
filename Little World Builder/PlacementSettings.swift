@@ -31,6 +31,8 @@ final class PlacementSettings: ObservableObject {
     @Published var recentlyPlaced: [Model] = []
 
     // This property will keep track of all the content that has been confirmed for placement in the scene.
+    @Published var shouldPlaceIslandRoot: Bool = false
+
     var modelConfirmedForPlacement: [ModelAnchor] = []
 
     // This property retains the cancellable object for our SceneEvents.Update subscriber.
