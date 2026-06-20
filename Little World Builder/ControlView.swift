@@ -109,20 +109,21 @@ struct BrowseButtons: View {
 
 struct SceneButtons: View {
     @EnvironmentObject var sceneManager: SceneManager
+    @EnvironmentObject var islandManager: IslandManager
 
     var body: some View {
         HStack(spacing: 14) {
             ControlButton(title: "Save", systemIconName: "square.and.arrow.down") {
                 self.sceneManager.shouldSaveSceneToFilesystem = true
             }
-            .opacity(self.sceneManager.isPersistenceAvailable ? 1 : 0.45)
-            .disabled(!self.sceneManager.isPersistenceAvailable)
+            .opacity(self.islandManager.activeIsland == nil ? 0.45 : 1)
+            .disabled(self.islandManager.activeIsland == nil)
 
             ControlButton(title: "Load", systemIconName: "folder") {
                 self.sceneManager.shouldLoadSceneFromFilesystem = true
             }
-            .opacity(self.sceneManager.scenePersistenceData == nil ? 0.45 : 1)
-            .disabled(self.sceneManager.scenePersistenceData == nil)
+            .opacity(self.islandManager.activeIsland == nil ? 0.45 : 1)
+            .disabled(self.islandManager.activeIsland == nil)
 
             ControlButton(title: "Clear", systemIconName: "trash", role: .destructive) {
                 self.sceneManager.clearCurrentScene()

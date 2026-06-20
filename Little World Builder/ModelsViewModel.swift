@@ -56,10 +56,22 @@ final class ModelsViewModel: ObservableObject {
         let text = identifier.lowercased()
         if text.contains("water") { return .water }
         if text.contains("tree") { return .trees }
-        if text.contains("manta") || text.contains("whale") { return .creatures }
+        if text.contains("plant") || text.contains("flower") || text.contains("bush") { return .plants }
+        if text.contains("manta") || text.contains("whale") || text.contains("fish") { return .seaCreatures }
+        if text.contains("animal") || text.contains("bird") { return .animals }
+        if text.contains("rock") || text.contains("decor") { return .rocksDecor }
         if text.contains("plane") { return .vehicles }
         if text.contains("island") { return .island }
-        if text.contains("mount") || text.contains("rock") || text.contains("land") { return .land }
+        if text.contains("mount") || text.contains("land") { return .land }
         return .misc
+    }
+}
+
+
+extension ModelsViewModel {
+    func defaultBaseIslandModel() -> Model? {
+        models.first { $0.category == .island }
+        ?? models.first { $0.assetFileName.lowercased().contains("island") }
+        ?? models.first { $0.category == .land }
     }
 }
