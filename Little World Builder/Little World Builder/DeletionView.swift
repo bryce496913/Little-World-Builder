@@ -13,11 +13,7 @@ struct DeletionView: View {
                 }
                 AppButton("Delete", systemImage: "trash", style: .destructive) {
                     guard let anchor = self.modelDeletionManager.entitySelectedForDeletion?.anchor else { return }
-                    let anchoringIdentifier = anchor.anchorIdentifier
-                    if let index = self.sceneManager.anchorEntities.firstIndex(where: { $0.anchorIdentifier == anchoringIdentifier}) {
-                        self.sceneManager.anchorEntities.remove(at: index)
-                    }
-                    anchor.removeFromParent()
+                    self.sceneManager.removeAnchorEntity(anchor)
                     self.modelDeletionManager.entitySelectedForDeletion = nil
                 }
             }
