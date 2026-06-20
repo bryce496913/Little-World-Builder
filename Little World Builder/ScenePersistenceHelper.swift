@@ -12,8 +12,13 @@ import ARKit
 struct PersistedModelPlacement: Codable {
     let modelIdentifier: String
     let modelFileName: String
+    let displayName: String?
+    let category: String?
     let anchorTransform: [Float]
     let modelTransform: [Float]
+    let position: [Float]
+    let scale: [Float]
+    let rotation: [Float]
 }
 
 struct PersistedScene: Codable {
@@ -38,12 +43,18 @@ final class ScenePersistenceHelper {
                 return nil
             }
             
-            let fileName = modelEntity.components[LocalModelComponent.self]?.assetFileName ?? "\(identifier).usdz"
+            let metadata = modelEntity.components[LocalModelComponent.self]
+            let fileName = metadata?.assetFileName ?? "\(identifier).usdz"
             return PersistedModelPlacement(
-                modelIdentifier: identifier,
+                modelIdentifier: metadata?.modelIdentifier ?? identifier,
                 modelFileName: fileName,
+                displayName: metadata?.displayName ?? identifier,
+                category: metadata?.category ?? ModelCategory.misc.rawValue,
                 anchorTransform: anchorEntity.transformMatrix(relativeTo: nil).flatArray,
-                modelTransform: modelEntity.transform.matrix.flatArray
+                modelTransform: modelEntity.transform.matrix.flatArray,
+                position: modelEntity.transform.translation.array,
+                scale: modelEntity.transform.scale.array,
+                rotation: modelEntity.transform.rotation.vector.array
             )
         }
         
@@ -75,7 +86,7 @@ final class ScenePersistenceHelper {
                     continue
                 }
                 
-                let anchor = ARAnchor(name: "model-\(model.id)", transform: anchorMatrix)
+                let anchor = ARAnchor(name: anchorNamePrefix + model.id, transform: anchorMatrix)
                 let modelAnchor = ModelAnchor(model: model, anchor: anchor, modelTransform: Transform(matrix: modelMatrix))
                 
                 if model.modelEntity == nil {
@@ -99,6 +110,16 @@ final class ScenePersistenceHelper {
 struct LocalModelComponent: Component {
     let modelIdentifier: String
     let assetFileName: String
+    let displayName: String?
+    let category: String?
+}
+
+private extension SIMD3 where Scalar == Float {
+    var array: [Float] { [x, y, z] }
+}
+
+private extension SIMD4 where Scalar == Float {
+    var array: [Float] { [x, y, z, w] }
 }
 
 private extension simd_float4x4 {
