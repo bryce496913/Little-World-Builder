@@ -17,7 +17,7 @@ struct ARViewContainer: UIViewRepresentable {
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var modelsViewModel: ModelsViewModel
     @EnvironmentObject var modelDeletionManager: ModelDeletionManager
-    @EnvironmentObject var islandManager: IslandManager
+    @EnvironmentObject var worldManager: WorldManager
     
     func makeUIView(context: Context) -> CustomARView {
         let arView = CustomARView(frame: .zero, sessionSettings: sessionSettings, modelDeletionManager: modelDeletionManager)
@@ -39,19 +39,20 @@ struct ARViewContainer: UIViewRepresentable {
     
     private func updateScene(for arView: CustomARView) {
         
-        arView.nativePlacementManager.update(in: arView, isPlacementActive: self.placementSettings.selectedModel != nil || (self.islandManager.activeIsland != nil && !self.islandManager.isIslandRootPlaced))
+        arView.nativePlacementManager.update(in: arView, isPlacementActive: self.placementSettings.selectedModel != nil || self.worldManager.pendingWorldForPlacement != nil)
         self.placementSettings.isPlacementAvailable = arView.nativePlacementManager.isPlacementAvailable
         self.placementSettings.placementStatusMessage = arView.nativePlacementManager.isPlacementAvailable ? "Ready to place" : "Scan a surface"
         
         // Add model(s) to scene if confirmed for placement.
         // Keep this after the native placement update so a Place tap uses the freshest
         // center-screen raycast transform while the selected model is still active.
-        if self.placementSettings.shouldPlaceIslandRoot {
-            if let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() {
-                self.islandManager.placeIslandRoot(on: anchorEntity, in: arView)
-                self.sceneManager.anchorEntities.append(anchorEntity)
-            }
-            self.placementSettings.shouldPlaceIslandRoot = false
+        if self.sceneManager.shouldLoadSceneFromFilesystem,
+           let pendingWorld = self.worldManager.pendingWorldForPlacement,
+           self.placementSettings.selectedModel == nil,
+           let anchorEntity = arView.nativePlacementManager.makeAnchorEntity() {
+            self.place(pendingWorld, on: anchorEntity, in: arView)
+            self.worldManager.finishPendingWorldPlacement()
+            self.sceneManager.shouldLoadSceneFromFilesystem = false
         }
         if let modelAnchor = self.placementSettings.modelConfirmedForPlacement.popLast() {
             self.placeConfirmed(modelAnchor, in: arView)
@@ -75,21 +76,49 @@ struct ARViewContainer: UIViewRepresentable {
             return
         }
 
-        if self.islandManager.activeIsland != nil && !self.islandManager.isIslandRootPlaced {
-            self.islandManager.placeIslandRoot(on: anchorEntity, in: arView)
-            self.sceneManager.anchorEntities.append(anchorEntity)
-            self.islandManager.addChildAsset(modelAnchor.model, modelEntity: modelEntity, worldTransform: arView.nativePlacementManager.latestPlacementTransform ?? matrix_identity_float4x4, in: arView)
-        } else if self.islandManager.isIslandRootPlaced {
-            self.islandManager.addChildAsset(modelAnchor.model, modelEntity: modelEntity, worldTransform: arView.nativePlacementManager.latestPlacementTransform ?? matrix_identity_float4x4, in: arView)
-        } else {
-            anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
-            print("Placement: placing \(modelAnchor.model.name) from \(modelAnchor.model.assetURL.lastPathComponent).")
-            self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
-        }
+        anchorEntity.name = anchorNamePrefix + modelAnchor.model.id
+        print("Placement: placing \(modelAnchor.model.name) from \(modelAnchor.model.assetURL.lastPathComponent).")
+        self.place(modelEntity, for: modelAnchor.model, anchorEntity: anchorEntity, modelTransform: nil, in: arView)
         self.placementSettings.recentlyPlaced.append(modelAnchor.model)
 
         if self.placementSettings.selectedModel?.id == modelAnchor.model.id {
             self.placementSettings.selectedModel = nil
+        }
+    }
+
+    private func place(_ world: SavedWorld, on anchorEntity: AnchorEntity, in arView: CustomARView) {
+        anchorEntity.name = "world-root-anchor-\(world.id.uuidString)"
+        let group = DispatchGroup()
+        for savedAsset in world.placedAssets {
+            guard let model = modelsViewModel.model(matching: savedAsset.assetFileName) else {
+                print("World Warning: Missing bundled asset \(savedAsset.assetFileName). Skipping.")
+                continue
+            }
+            group.enter()
+            let attach: (ModelEntity) -> Void = { entity in
+                let clone = entity.clone(recursive: true)
+                clone.name = model.id
+                clone.components.set(LocalModelComponent(modelIdentifier: model.id, assetFileName: model.assetFileName, displayName: savedAsset.displayName, category: savedAsset.category.rawValue))
+                clone.transform = CodableTransform(position: savedAsset.position, rotation: savedAsset.rotation, scale: savedAsset.scale).realityKitTransform
+                clone.generateCollisionShapes(recursive: true)
+                arView.installGestures([.translation, .rotation, .scale], for: clone)
+                anchorEntity.addChild(clone)
+            }
+            if let entity = model.modelEntity {
+                attach(entity)
+                group.leave()
+            } else {
+                model.asyncLoadModelEntity { completed, error in
+                    if completed, let entity = model.modelEntity { attach(entity) }
+                    else if let error { print("World Error: Unable to load \(model.assetFileName): \(error.localizedDescription)") }
+                    group.leave()
+                }
+            }
+        }
+        group.notify(queue: .main) {
+            arView.scene.addAnchor(anchorEntity)
+            self.sceneManager.anchorEntities.append(anchorEntity)
+            print("World: placed saved world \(world.name) with \(anchorEntity.children.count) asset(s).")
         }
     }
 
@@ -140,16 +169,6 @@ class SceneManager: ObservableObject {
     var shouldSaveSceneToFilesystem: Bool = false // Flag to trigger save scene to filesystem function
     var shouldLoadSceneFromFilesystem: Bool = false // Flag to trigger load scene from filesystem function
     
-    lazy var persistenceUrl: URL = LocalSavedWorldStore.shared.defaultSceneURL()
-    
-    var scenePersistenceData: Data? {
-        return try? Data(contentsOf: persistenceUrl)
-    }
-
-    func deleteSavedScene() {
-        LocalSavedWorldStore.shared.deleteScene(at: persistenceUrl)
-    }
-
     func removeAnchorEntity(_ anchorEntity: AnchorEntity) {
         if let index = anchorEntities.firstIndex(where: { $0 === anchorEntity }) {
             anchorEntities.remove(at: index)
@@ -198,27 +217,18 @@ extension ARViewContainer {
     
     private func handlePersistence(for arView: CustomARView) {
         if self.sceneManager.shouldSaveSceneToFilesystem {
-            self.islandManager.saveActiveIsland()
+            ScenePersistenceHelper.saveWorld(from: self.sceneManager, using: self.worldManager)
             
             self.sceneManager.shouldSaveSceneToFilesystem = false
         } else if self.sceneManager.shouldLoadSceneFromFilesystem {
             
-            guard self.islandManager.activeIsland != nil else {
-                print("Persistence Error: Unable to retrieve scenePersistenceData. Canceled loadScene operation.")
-                
+            guard self.worldManager.pendingWorldForPlacement != nil else {
+                print("World Persistence: choose a saved world before loading.")
                 self.sceneManager.shouldLoadSceneFromFilesystem = false
-                
                 return
             }
-            
             self.modelsViewModel.clearModelEntitiesFromMemory()
             self.sceneManager.clearCurrentScene()
-
-            self.islandManager.rebuildActiveIslandRoot(using: self.modelsViewModel) { rebuilt in
-                if !rebuilt { print("Island Error: Unable to rebuild saved island root.") }
-            }
-                        
-            self.sceneManager.shouldLoadSceneFromFilesystem = false
         }
     }
 }
