@@ -12,7 +12,7 @@ struct ContentView: View {
     @EnvironmentObject var modelsViewModel: ModelsViewModel
     @EnvironmentObject var modelDeletionManager: ModelDeletionManager
     @EnvironmentObject var sceneManager: SceneManager
-    @EnvironmentObject var islandManager: IslandManager
+    @EnvironmentObject var worldManager: WorldManager
     @Environment(\.dismiss) private var dismiss
 
     var loadSavedWorldOnAppear = false
@@ -31,7 +31,7 @@ struct ContentView: View {
                 Spacer()
             }
 
-            if self.placementSettings.selectedModel != nil || (self.islandManager.activeIsland != nil && !self.islandManager.isIslandRootPlaced) {
+            if self.placementSettings.selectedModel != nil || self.worldManager.pendingWorldForPlacement != nil {
                 PlacementView()
             } else if self.modelDeletionManager.entitySelectedForDeletion != nil {
                 DeletionView()
@@ -44,12 +44,7 @@ struct ContentView: View {
         .navigationBarHidden(true)
         .onAppear {
             self.modelsViewModel.fetchData()
-            if !loadSavedWorldOnAppear && islandManager.activeIsland == nil {
-                _ = islandManager.createNewIsland(using: modelsViewModel)
-                islandManager.rebuildActiveIslandRoot(using: modelsViewModel) { _ in }
-            }
             if loadSavedWorldOnAppear && !didRequestSavedWorldLoad {
-                self.sceneManager.shouldLoadSceneFromFilesystem = true
                 self.didRequestSavedWorldLoad = true
             }
         }
@@ -93,6 +88,6 @@ struct ContentView_Previews: PreviewProvider {
             .environmentObject(SceneManager())
             .environmentObject(ModelsViewModel())
             .environmentObject(ModelDeletionManager())
-            .environmentObject(IslandManager())
+            .environmentObject(WorldManager())
     }
 }

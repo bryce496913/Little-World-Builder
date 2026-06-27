@@ -11,27 +11,25 @@ import Combine
 
 enum ModelCategory: String, CaseIterable, Codable {
     case land
-    case island
     case water
     case trees
     case plants
-    case animals
-    case seaCreatures
-    case rocksDecor
+    case creatures
     case vehicles
+    case decor
+    case structures
     case misc
 
     var label: String {
         switch self {
         case .land: return "Land"
-        case .island: return "Island"
         case .water: return "Water"
         case .trees: return "Trees"
         case .plants: return "Plants"
-        case .animals: return "Animals"
-        case .seaCreatures: return "Sea Creatures"
-        case .rocksDecor: return "Rocks & Decor"
+        case .creatures: return "Creatures"
         case .vehicles: return "Vehicles"
+        case .decor: return "Decor"
+        case .structures: return "Structures"
         case .misc: return "Misc"
         }
     }

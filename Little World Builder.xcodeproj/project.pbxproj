@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		02ISLANDBUILD000000001 /* SavedIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ISLANDFILE000000001 /* SavedIsland.swift */; };
-		02ISLANDMANBUILD000001 /* IslandManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ISLANDMANFILE000001 /* IslandManager.swift */; };
+		02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDFILE000000001 /* SavedWorld.swift */; };
+		02WORLDMANBUILD000001 /* WorldManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDMANFILE000001 /* WorldManager.swift */; };
 		02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */; };
 		02AATHEMEBUILD000000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AATHEME0000000000000001 /* AppTheme.swift */; };
 		02AAMENUBUILD000000001 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AAMENU0000000000000001 /* MainMenuView.swift */; };
@@ -60,8 +60,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		02ISLANDFILE000000001 /* SavedIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedIsland.swift; sourceTree = "<group>"; };
-		02ISLANDMANFILE000001 /* IslandManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandManager.swift; sourceTree = "<group>"; };
+		02WORLDFILE000000001 /* SavedWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorld.swift; sourceTree = "<group>"; };
+		02WORLDMANFILE000001 /* WorldManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldManager.swift; sourceTree = "<group>"; };
 		02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlacementManager.swift; sourceTree = "<group>"; };
 		02AATHEME0000000000000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		02AAMENU0000000000000001 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
@@ -163,8 +163,8 @@
 				02E1046027C030DA00BCFF73 /* ModelDeletionManager.swift */,
 				02913F2627335E5B00869572 /* ModelsViewModel.swift */,
 				02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */,
-				02ISLANDFILE000000001 /* SavedIsland.swift */,
-				02ISLANDMANFILE000001 /* IslandManager.swift */,
+				02WORLDFILE000000001 /* SavedWorld.swift */,
+				02WORLDMANFILE000001 /* WorldManager.swift */,
 				02913F2527335E5B00869572 /* PlacementSettings.swift */,
 				02913F2427335E5B00869572 /* PlacementView.swift */,
 				02913EFD27334C7900869572 /* Preview Content */,
@@ -353,8 +353,8 @@
 				02913EFA27334C7800869572 /* ContentView.swift in Sources */,
 				02913F3127335E5B00869572 /* ModelsViewModel.swift in Sources */,
 				02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */,
-				02ISLANDBUILD000000001 /* SavedIsland.swift in Sources */,
-				02ISLANDMANBUILD000001 /* IslandManager.swift in Sources */,
+				02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */,
+				02WORLDMANBUILD000001 /* WorldManager.swift in Sources */,
 				02913EF827334C7800869572 /* Little_World_BuilderApp.swift in Sources */,
 				02E1046127C030DA00BCFF73 /* ModelDeletionManager.swift in Sources */,
 				02913F2F27335E5B00869572 /* PlacementView.swift in Sources */,
