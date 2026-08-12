@@ -37,11 +37,6 @@ final class NativePlacementManager {
         indicator.transform.matrix = result.worldTransform
         indicator.isEnabled = true
     }
-
-    func makeAnchorEntity() -> AnchorEntity? {
-        guard let latestPlacementTransform else { return nil }
-        return AnchorEntity(world: latestPlacementTransform)
-    }
 }
 
 final class PlacementIndicatorEntity: Entity, HasModel {

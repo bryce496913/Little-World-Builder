@@ -28,7 +28,7 @@ struct PlacementView: View {
                         self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: nil))
                     } else if let pendingWorld = self.worldManager.pendingWorldForPlacement {
                         print("World: confirmed placement for saved world \(pendingWorld.name).")
-                        self.sceneManager.shouldLoadSceneFromFilesystem = true
+                        self.sceneManager.shouldPlacePendingWorld = true
                     }
                 }
                 .disabled(!placementSettings.isPlacementAvailable)

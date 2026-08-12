@@ -166,8 +166,13 @@ extension CustomARView {
     @objc func handleLongPress(recognizer: UILongPressGestureRecognizer) {
         let location = recognizer.location(in: self)
         
-        if let entity = self.entity(at: location) as? ModelEntity {
-            modelDeletionManager.entitySelectedForDeletion = entity
+        var candidate = self.entity(at: location)
+        while let entity = candidate {
+            if let placedEntity = entity as? ModelEntity, entity.components[LocalModelComponent.self] != nil {
+                modelDeletionManager.entitySelectedForDeletion = placedEntity
+                return
+            }
+            candidate = entity.parent
         }
     }
 }

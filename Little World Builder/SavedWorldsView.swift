@@ -40,7 +40,7 @@ struct SavedWorldsView: View {
             }
         }
         .navigationDestination(isPresented: $navigateToWorld) {
-            ContentView(loadSavedWorldOnAppear: true)
+            ContentView()
         }
         .id(refreshID)
         .navigationTitle("")

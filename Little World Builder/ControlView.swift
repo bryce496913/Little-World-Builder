@@ -109,6 +109,7 @@ struct BrowseButtons: View {
 
 struct SceneButtons: View {
     @EnvironmentObject var sceneManager: SceneManager
+    @EnvironmentObject var worldManager: WorldManager
 
     var body: some View {
         HStack(spacing: 14) {
@@ -116,13 +117,9 @@ struct SceneButtons: View {
                 self.sceneManager.shouldSaveSceneToFilesystem = true
             }
 
-
-            ControlButton(title: "Load", systemIconName: "folder") {
-                self.sceneManager.shouldLoadSceneFromFilesystem = true
-            }
-
             ControlButton(title: "Clear", systemIconName: "trash", role: .destructive) {
                 self.sceneManager.clearCurrentScene()
+                self.worldManager.resetActiveWorld()
             }
         }
     }

@@ -1,67 +1,35 @@
-//
-//  ModelsViewModel.swift
-//  AR Test
-//
-//  Created by Bryce on 27/08/21.
-//
-
 import Combine
 import Foundation
 
 final class ModelsViewModel: ObservableObject {
-    private static let appReadyUSDZSubdirectory = "App Ready USDZ"
-
+    static let appReadyUSDZSubdirectory = "App Ready USDZ"
     @Published var models: [Model] = []
-    
-    func fetchData() {
-        let assetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: Self.appReadyUSDZSubdirectory) ?? []
-        let fallbackAssetURLs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) ?? []
-        let discoveredURLs = assetURLs.isEmpty ? fallbackAssetURLs : assetURLs
-        
-        let localModels = discoveredURLs
-            .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
-            .map { assetURL in
-                Model(
-                    assetURL: assetURL,
-                    category: Self.category(for: assetURL.deletingPathExtension().lastPathComponent),
-                    scaleCompensation: Self.scaleCompensation(for: assetURL.lastPathComponent)
-                )
+
+    func fetchData(bundle: Bundle = .main) {
+        guard let url = bundle.url(forResource: "AssetManifest", withExtension: "json") else {
+            print("Asset Manifest Error: bundled AssetManifest.json is missing."); models = []; return
+        }
+        let entries: [AssetManifestEntry]
+        do { entries = try AssetManifestLoader.decode(Data(contentsOf: url)) }
+        catch { print("Asset Manifest Error: \(error.localizedDescription)"); models = []; return }
+
+        var ids = Set<String>(), files = Set<String>()
+        let valid = entries.compactMap { entry -> Model? in
+            let errors = entry.validationErrors
+            guard errors.isEmpty else { print("Asset Manifest Error [\(entry.id)]: \(errors.joined(separator: ", "))"); return nil }
+            guard ids.insert(entry.id).inserted else { print("Asset Manifest Error: duplicate id \(entry.id)"); return nil }
+            guard files.insert(entry.fileName).inserted else { print("Asset Manifest Error: duplicate fileName \(entry.fileName)"); return nil }
+            let file = entry.fileName as NSString
+            guard let assetURL = bundle.url(forResource: file.deletingPathExtension, withExtension: file.pathExtension, subdirectory: Self.appReadyUSDZSubdirectory) else {
+                print("Asset Manifest Error [\(entry.id)]: missing exact USDZ \(entry.fileName)"); return nil
             }
-        
-        if localModels.isEmpty {
-            print("Local Asset Error: No bundled USDZ files were found. Confirm the \(Self.appReadyUSDZSubdirectory) folder is included in the app target resources.")
-        } else {
-            print("Local Assets: Loaded \(localModels.count) bundled USDZ model definitions.")
+            return Model(entry: entry, assetURL: assetURL, bundle: bundle)
         }
-        
-        self.models = localModels
-    }
-    
-    func model(matching identifier: String) -> Model? {
-        models.first { $0.id == identifier || $0.assetFileName == identifier || $0.name == identifier }
-    }
-    
-    func clearModelEntitiesFromMemory() {
-        for model in models {
-            model.modelEntity = nil
-        }
-    }
-    
-    private static func scaleCompensation(for assetFileName: String) -> Float {
-        // Local App Ready USDZ files are authored at app-ready scale unless a per-file override is added here.
-        1.0
+        let bundled = Set((bundle.urls(forResourcesWithExtension: "usdz", subdirectory: Self.appReadyUSDZSubdirectory) ?? []).map(\.lastPathComponent))
+        for unlisted in bundled.subtracting(files).sorted() { print("Asset Manifest Warning: unlisted bundled USDZ \(unlisted)") }
+        models = valid.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    static func category(for identifier: String) -> ModelCategory {
-        let text = identifier.lowercased()
-        if text.contains("water") { return .water }
-        if text.contains("tree") { return .trees }
-        if text.contains("plant") || text.contains("flower") || text.contains("bush") { return .plants }
-        if text.contains("manta") || text.contains("whale") || text.contains("fish") || text.contains("animal") || text.contains("bird") { return .creatures }
-        if text.contains("island") || text.contains("mount") || text.contains("land") { return .land }
-        if text.contains("rock") || text.contains("decor") { return .decor }
-        if text.contains("plane") { return .vehicles }
-        if text.contains("building") || text.contains("house") || text.contains("tower") { return .structures }
-        return .misc
-    }
+    func model(matching identifier: String) -> Model? { models.first { $0.id == identifier || $0.assetFileName == identifier } }
+    func clearModelEntitiesFromMemory() { models.forEach { $0.modelEntity = nil } }
 }

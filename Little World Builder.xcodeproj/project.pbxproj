@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02MANIFESTSWBUILD000001 /* AssetManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTSWFILE000001 /* AssetManifest.swift */; };
+		02MANIFESTJSONBUILD001 /* AssetManifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTJSONFILE001 /* AssetManifest.json */; };
 		02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDFILE000000001 /* SavedWorld.swift */; };
 		02WORLDMANBUILD000001 /* WorldManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDMANFILE000001 /* WorldManager.swift */; };
 		02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */; };
@@ -16,10 +18,6 @@
 		02LOCALUSDBUNDLE0000000001 /* App Ready USDZ in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALUSDFOLDER0000000001 /* App Ready USDZ */; };
 		02LOCALTHUMBS000000000001 /* Thumbnails in Resources */ = {isa = PBXBuildFile; fileRef = 02LOCALTHUMBSFOLDER0000001 /* Thumbnails */; };
 		023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 023A4CF527C5BCF300BE5FEE /* Launch Screen.storyboard */; };
-		028E1FF827C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
-		028E1FF927C2D18D0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FF727C2D18D0040360B /* Info.plist */; };
-		028E1FFB27C2D1DF0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FFA27C2D1DF0040360B /* Info.plist */; };
-		028E1FFC27C2D1DF0040360B /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 028E1FFA27C2D1DF0040360B /* Info.plist */; };
 		02913EF827334C7800869572 /* Little_World_BuilderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913EF727334C7800869572 /* Little_World_BuilderApp.swift */; };
 		02913EFA27334C7800869572 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02913EF927334C7800869572 /* ContentView.swift */; };
 		02913EFC27334C7900869572 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 02913EFB27334C7900869572 /* Assets.xcassets */; };
@@ -60,6 +58,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02MANIFESTSWFILE000001 /* AssetManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetManifest.swift; sourceTree = "<group>"; };
+		02MANIFESTJSONFILE001 /* AssetManifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = AssetManifest.json; sourceTree = "<group>"; };
 		02WORLDFILE000000001 /* SavedWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorld.swift; sourceTree = "<group>"; };
 		02WORLDMANFILE000001 /* WorldManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldManager.swift; sourceTree = "<group>"; };
 		02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlacementManager.swift; sourceTree = "<group>"; };
@@ -148,6 +148,8 @@
 				02LOCALUSDFOLDER0000000001 /* App Ready USDZ */,
 				02LOCALTHUMBSFOLDER0000001 /* Thumbnails */,
 				02AATHEME0000000000000001 /* AppTheme.swift */,
+				02MANIFESTSWFILE000001 /* AssetManifest.swift */,
+				02MANIFESTJSONFILE001 /* AssetManifest.json */,
 				02AASAVED000000000000001 /* SavedWorldsView.swift */,
 				02AAMENU0000000000000001 /* MainMenuView.swift */,
 				02913F2227335E3C00869572 /* ARViewContainer.swift */,
@@ -312,6 +314,7 @@
 			files = (
 				02LOCALUSDBUNDLE0000000001 /* App Ready USDZ in Resources */,
 				02LOCALTHUMBS000000000001 /* Thumbnails in Resources */,
+				02MANIFESTJSONBUILD001 /* AssetManifest.json in Resources */,
 				02913EFF27334C7900869572 /* Preview Assets.xcassets in Resources */,
 				02913EFC27334C7900869572 /* Assets.xcassets in Resources */,
 				023A4CF627C5BCF300BE5FEE /* Launch Screen.storyboard in Resources */,
@@ -322,8 +325,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				028E1FF827C2D18D0040360B /* Info.plist in Resources */,
-				028E1FFB27C2D1DF0040360B /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -331,8 +332,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				028E1FF927C2D18D0040360B /* Info.plist in Resources */,
-				028E1FFC27C2D1DF0040360B /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,6 +343,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				02AATHEMEBUILD000000001 /* AppTheme.swift in Sources */,
+				02MANIFESTSWBUILD000001 /* AssetManifest.swift in Sources */,
 				02AASAVEDBUILD00000001 /* SavedWorldsView.swift in Sources */,
 				02AAMENUBUILD000000001 /* MainMenuView.swift in Sources */,
 				02913F3227335E5C00869572 /* SessionSettings.swift in Sources */,
