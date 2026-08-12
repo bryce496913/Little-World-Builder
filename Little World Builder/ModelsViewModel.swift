@@ -52,16 +52,16 @@ final class ModelsViewModel: ObservableObject {
         1.0
     }
 
-    private static func category(for identifier: String) -> ModelCategory {
+    static func category(for identifier: String) -> ModelCategory {
         let text = identifier.lowercased()
         if text.contains("water") { return .water }
         if text.contains("tree") { return .trees }
         if text.contains("plant") || text.contains("flower") || text.contains("bush") { return .plants }
         if text.contains("manta") || text.contains("whale") || text.contains("fish") || text.contains("animal") || text.contains("bird") { return .creatures }
+        if text.contains("island") || text.contains("mount") || text.contains("land") { return .land }
         if text.contains("rock") || text.contains("decor") { return .decor }
         if text.contains("plane") { return .vehicles }
         if text.contains("building") || text.contains("house") || text.contains("tower") { return .structures }
-        if text.contains("island") || text.contains("mount") || text.contains("land") { return .land }
         return .misc
     }
 }

@@ -76,9 +76,10 @@ final class Model: ObservableObject, Identifiable {
             })
     }
     
-    private static func displayName(for identifier: String) -> String {
+    static func displayName(for identifier: String) -> String {
         identifier
             .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
             .split(separator: " ")
             .map { $0.capitalized }
             .joined(separator: " ")
