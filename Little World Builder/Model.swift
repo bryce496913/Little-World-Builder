@@ -1,40 +1,11 @@
-//
-//  Model.swift
-//  AR Test
-//
-//  Created by Bryce on 1/07/21.
-//
-
 import SwiftUI
 import RealityKit
 import Combine
 
 enum ModelCategory: String, CaseIterable, Codable {
-    case land
-    case water
-    case trees
-    case plants
-    case creatures
-    case vehicles
-    case decor
-    case structures
-    case misc
-
-    var label: String {
-        switch self {
-        case .land: return "Land"
-        case .water: return "Water"
-        case .trees: return "Trees"
-        case .plants: return "Plants"
-        case .creatures: return "Creatures"
-        case .vehicles: return "Vehicles"
-        case .decor: return "Decor"
-        case .structures: return "Structures"
-        case .misc: return "Misc"
-        }
-    }
+    case land, water, trees, plants, creatures, vehicles, structures, decor, misc
+    var label: String { rawValue.capitalized }
 }
-
 
 final class Model: ObservableObject, Identifiable {
     let id: String
@@ -42,67 +13,37 @@ final class Model: ObservableObject, Identifiable {
     let category: ModelCategory
     let assetURL: URL
     let assetFileName: String
+    let thumbnailFileName: String
+    let placementRole: PlacementRole
+    let gridFootprint: GridFootprint
+    let snapBehavior: SnapBehavior
     @Published var thumbnail: UIImage
     var modelEntity: ModelEntity?
     let scaleCompensation: Float
-    
     private var cancellable: AnyCancellable?
-    
-    init(assetURL: URL, category: ModelCategory, scaleCompensation: Float = 1.0) {
-        self.assetURL = assetURL
-        self.assetFileName = assetURL.lastPathComponent
-        self.id = assetURL.deletingPathExtension().lastPathComponent
-        self.name = Self.displayName(for: self.id)
-        self.category = category
-        self.thumbnail = Self.loadThumbnail(for: self.id)
-        self.scaleCompensation = scaleCompensation
-    }
-    
-    func asyncLoadModelEntity(handler: @escaping (_ completed: Bool, _ error: Error?) -> Void) {
-        cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL)
-            .sink(receiveCompletion: { loadCompletion in
-                switch loadCompletion {
-                case .failure(let error):
-                    print("Model Error: Unable to load modelEntity for \(self.name) from \(self.assetFileName): \(error.localizedDescription)")
-                    handler(false, error)
-                case .finished:
-                    break
-                }
-            }, receiveValue: { modelEntity in
-                self.modelEntity = modelEntity
-                self.modelEntity?.scale *= self.scaleCompensation
-                handler(true, nil)
-                print("modelEntity for \(self.name) has been loaded from bundled asset \(self.assetFileName).")
-            })
-    }
-    
-    static func displayName(for identifier: String) -> String {
-        identifier
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "_", with: " ")
-            .split(separator: " ")
-            .map { $0.capitalized }
-            .joined(separator: " ")
-    }
-    
-    private static func loadThumbnail(for identifier: String) -> UIImage {
-        let possibleNames = [identifier, displayName(for: identifier)]
-        let possibleExtensions = ["png", "jpg", "jpeg"]
 
-        for name in possibleNames {
-            if let image = UIImage(named: name) {
-                return image
-            }
+    init(entry: AssetManifestEntry, assetURL: URL, bundle: Bundle = .main) {
+        id = entry.id; name = entry.displayName; category = entry.category
+        self.assetURL = assetURL; assetFileName = entry.fileName
+        thumbnailFileName = entry.thumbnailFileName; placementRole = entry.placementRole
+        gridFootprint = entry.gridFootprint; snapBehavior = entry.snapBehavior
+        scaleCompensation = entry.defaultScale
+        thumbnail = Self.loadThumbnail(fileName: entry.thumbnailFileName, assetID: entry.id, bundle: bundle)
+    }
 
-            for fileExtension in possibleExtensions {
-                if let thumbnailURL = Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Thumbnails"),
-                   let image = UIImage(contentsOfFile: thumbnailURL.path) {
-                    return image
-                }
-            }
-        }
+    func asyncLoadModelEntity(handler: @escaping (Bool, Error?) -> Void) {
+        cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL).sink(receiveCompletion: {
+            if case .failure(let error) = $0 { print("Model Error: \(self.assetFileName): \(error.localizedDescription)"); handler(false, error) }
+        }, receiveValue: { entity in
+            self.modelEntity = entity; entity.scale *= self.scaleCompensation; handler(true, nil)
+        })
+    }
 
-        print("Thumbnail Error: Unable to load thumbnail for \(identifier). Confirm a matching image exists in the Thumbnails bundled resource folder.")
+    static func loadThumbnail(fileName: String, assetID: String, bundle: Bundle = .main) -> UIImage {
+        let file = fileName as NSString
+        if let url = bundle.url(forResource: file.deletingPathExtension, withExtension: file.pathExtension, subdirectory: "Thumbnails"),
+           let image = UIImage(contentsOfFile: url.path) { return image }
+        print("Thumbnail Error: missing or invalid Thumbnails/\(fileName) for asset \(assetID).")
         return UIImage(systemName: "photo") ?? UIImage()
     }
 }

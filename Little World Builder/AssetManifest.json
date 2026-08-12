@@ -1,0 +1,296 @@
+[
+  {
+    "id": "3-island-with-rocks",
+    "fileName": "3-island-with-rocks.usdz",
+    "displayName": "3 Island With Rocks",
+    "category": "land",
+    "thumbnailFileName": "3-island-with-rocks.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "3-islands",
+    "fileName": "3-islands.usdz",
+    "displayName": "3 Islands",
+    "category": "land",
+    "thumbnailFileName": "3-islands.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "beach-island",
+    "fileName": "beach-island.usdz",
+    "displayName": "Beach Island",
+    "category": "land",
+    "thumbnailFileName": "beach-island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "floating_island",
+    "fileName": "floating_island.usdz",
+    "displayName": "Floating Island",
+    "category": "land",
+    "thumbnailFileName": "floating_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "forest_island",
+    "fileName": "forest_island.usdz",
+    "displayName": "Forest Island",
+    "category": "land",
+    "thumbnailFileName": "forest_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "lagoon_island",
+    "fileName": "lagoon_island.usdz",
+    "displayName": "Lagoon Island",
+    "category": "land",
+    "thumbnailFileName": "lagoon_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "large-island",
+    "fileName": "large-island.usdz",
+    "displayName": "Large Island",
+    "category": "land",
+    "thumbnailFileName": "large-island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "large-mount",
+    "fileName": "large-mount.usdz",
+    "displayName": "Large Mount",
+    "category": "land",
+    "thumbnailFileName": "large-mount.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "manta-group",
+    "fileName": "manta-group.usdz",
+    "displayName": "Manta Group",
+    "category": "creatures",
+    "thumbnailFileName": "manta-group.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water"
+  },
+  {
+    "id": "manta",
+    "fileName": "manta.usdz",
+    "displayName": "Manta",
+    "category": "creatures",
+    "thumbnailFileName": "manta.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water"
+  },
+  {
+    "id": "plane",
+    "fileName": "plane.usdz",
+    "displayName": "Plane",
+    "category": "vehicles",
+    "thumbnailFileName": "plane.png",
+    "defaultScale": 1.0,
+    "placementRole": "vehicle",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "rocky_island",
+    "fileName": "rocky_island.usdz",
+    "displayName": "Rocky Island",
+    "category": "land",
+    "thumbnailFileName": "rocky_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "sandy_beach_island",
+    "fileName": "sandy_beach_island.usdz",
+    "displayName": "Sandy Beach Island",
+    "category": "land",
+    "thumbnailFileName": "sandy_beach_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "smaller-mount",
+    "fileName": "smaller-mount.usdz",
+    "displayName": "Smaller Mount",
+    "category": "land",
+    "thumbnailFileName": "smaller-mount.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "snow_island",
+    "fileName": "snow_island.usdz",
+    "displayName": "Snow Island",
+    "category": "land",
+    "thumbnailFileName": "snow_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "tree-group",
+    "fileName": "tree-group.usdz",
+    "displayName": "Tree Group",
+    "category": "trees",
+    "thumbnailFileName": "tree-group.png",
+    "defaultScale": 1.0,
+    "placementRole": "tree",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "tree",
+    "fileName": "tree.usdz",
+    "displayName": "Tree",
+    "category": "trees",
+    "thumbnailFileName": "tree.png",
+    "defaultScale": 1.0,
+    "placementRole": "tree",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "volcano_island",
+    "fileName": "volcano_island.usdz",
+    "displayName": "Volcano Island",
+    "category": "land",
+    "thumbnailFileName": "volcano_island.png",
+    "defaultScale": 1.0,
+    "placementRole": "base",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "ground"
+  },
+  {
+    "id": "water-high",
+    "fileName": "water-high.usdz",
+    "displayName": "Water High",
+    "category": "water",
+    "thumbnailFileName": "water-high.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water"
+  },
+  {
+    "id": "water-low",
+    "fileName": "water-low.usdz",
+    "displayName": "Water Low",
+    "category": "water",
+    "thumbnailFileName": "water-low.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water"
+  },
+  {
+    "id": "whale",
+    "fileName": "whale.usdz",
+    "displayName": "Whale",
+    "category": "creatures",
+    "thumbnailFileName": "whale.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water"
+  }
+]

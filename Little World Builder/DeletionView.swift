@@ -4,6 +4,7 @@ import RealityKit
 struct DeletionView: View {
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var modelDeletionManager: ModelDeletionManager
+    @EnvironmentObject var worldManager: WorldManager
 
     var body: some View {
         VStack(spacing: 12) {
@@ -13,8 +14,8 @@ struct DeletionView: View {
                     self.modelDeletionManager.entitySelectedForDeletion = nil
                 }
                 AppButton("Delete", systemImage: "trash", style: .destructive) {
-                    guard let anchor = self.modelDeletionManager.entitySelectedForDeletion?.anchor as? AnchorEntity else { return }
-                    self.sceneManager.removeAnchorEntity(anchor)
+                    guard let entity = self.modelDeletionManager.entitySelectedForDeletion else { return }
+                    self.worldManager.remove(entity: entity)
                     self.modelDeletionManager.entitySelectedForDeletion = nil
                 }
             }

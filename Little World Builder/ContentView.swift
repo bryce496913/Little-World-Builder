@@ -15,13 +15,9 @@ struct ContentView: View {
     @EnvironmentObject var worldManager: WorldManager
     @Environment(\.dismiss) private var dismiss
 
-    var loadSavedWorldOnAppear = false
-
     @State private var selectedControlMode: Int = 0
     @State private var isControlsVisible: Bool = true
     @State private var showBrowse: Bool = false
-    @State private var didRequestSavedWorldLoad = false
-
     var body: some View {
         ZStack(alignment: .bottom) {
             ARViewContainer()
@@ -44,9 +40,6 @@ struct ContentView: View {
         .navigationBarHidden(true)
         .onAppear {
             self.modelsViewModel.fetchData()
-            if loadSavedWorldOnAppear && !didRequestSavedWorldLoad {
-                self.didRequestSavedWorldLoad = true
-            }
         }
     }
 }
