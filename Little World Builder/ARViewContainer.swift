@@ -24,7 +24,11 @@ struct ARViewContainer: UIViewRepresentable {
         worldManager.setGridConfiguration(SavedGridConfiguration(cellSizeMeters: placementSettings.gridSettings.cellSizeMeters,
                                                                   rotationStepDegrees: placementSettings.gridSettings.rotationStepDegrees,
                                                                   wasEnabled: placementSettings.placementMode == .grid))
-        arView.nativePlacementManager.update(in:arView,isPlacementActive:placementSettings.selectedModel != nil || worldManager.pendingWorldForPlacement != nil)
+        let isPlacingWorld = worldManager.pendingWorldForPlacement != nil
+        let requiresHorizontalSurface = isPlacingWorld || (placementSettings.placementMode == .grid && placementSettings.selectedModel?.snapBehavior != .free)
+        arView.nativePlacementManager.update(in: arView,
+                                             isPlacementActive: placementSettings.selectedModel != nil || isPlacingWorld,
+                                             alignment: requiresHorizontalSurface ? .horizontal : .any)
         placementSettings.isPlacementAvailable=arView.nativePlacementManager.isPlacementAvailable
         placementSettings.placementStatusMessage=placementSettings.isPlacementAvailable ? "Ready to place" : "Scan a surface"
         updateGridPreview(in: arView)
