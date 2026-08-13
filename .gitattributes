@@ -1,2 +1,4 @@
-App[[:space:]]Ready[[:space:]]USDZ/*.usdz filter=lfs diff=lfs merge=lfs -text
+# App-ready models are already committed as ordinary Git blobs. Do not pass them
+# through the LFS clean filter when code-only changes are staged.
+App[[:space:]]Ready[[:space:]]USDZ/*.usdz -filter -diff -merge -text
 3MF/USDZ/**/*.usdz filter=lfs diff=lfs merge=lfs -text

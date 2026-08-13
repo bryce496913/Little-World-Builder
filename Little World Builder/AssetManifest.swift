@@ -16,6 +16,7 @@ struct AssetManifestEntry: Codable, Identifiable, Equatable {
     let category: ModelCategory
     let thumbnailFileName: String
     let defaultScale: Float
+    let rotationXDegrees: Float?
     let placementRole: PlacementRole
     let gridFootprint: GridFootprint
     let snapBehavior: SnapBehavior
@@ -27,6 +28,7 @@ struct AssetManifestEntry: Codable, Identifiable, Equatable {
         if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errors.append("empty displayName") }
         if thumbnailFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errors.append("empty thumbnailFileName") }
         if !defaultScale.isFinite || defaultScale <= 0 { errors.append("defaultScale must be finite and positive") }
+        if let rotationXDegrees, !rotationXDegrees.isFinite { errors.append("rotationXDegrees must be finite") }
         if !gridFootprint.isValid { errors.append("gridFootprint dimensions must be positive") }
         return errors
     }
