@@ -28,6 +28,14 @@ final class Little_World_BuilderTests: XCTestCase {
 
     func testMissingManifestFileProducesControlledError() { XCTAssertThrowsError(try Data(contentsOf:root.appendingPathComponent("missing.json"))) }
 
+    func testPlacementSizeFollowsGridFootprint() throws {
+        let entries=try manifest()
+        let tree=try XCTUnwrap(entries.first { $0.id == "tree" })
+        let island=try XCTUnwrap(entries.first { $0.id == "floating_island" })
+        XCTAssertEqual(Model(entry:tree,assetURL:URL(fileURLWithPath:"tree.usdz")).placementSize,0.18,accuracy:0.001)
+        XCTAssertEqual(Model(entry:island,assetURL:URL(fileURLWithPath:"floating_island.usdz")).placementSize,0.54,accuracy:0.001)
+    }
+
     func testThreeObjectsKeepRootRelativeLayoutAtNewWorldLocation() throws {
         let rootA=matrix_identity_float4x4
         var rootB=matrix_identity_float4x4; rootB.columns.3=SIMD4(20,2,-7,1)
