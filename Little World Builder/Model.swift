@@ -19,7 +19,8 @@ final class Model: ObservableObject, Identifiable {
     let snapBehavior: SnapBehavior
     @Published var thumbnail: UIImage
     var modelEntity: ModelEntity?
-    let scaleCompensation: Float
+    /// Final size multiplier applied once, after normalizing the asset to its footprint size.
+    let defaultScale: Float
     let rotationXDegrees: Float
     private var cancellable: AnyCancellable?
 
@@ -28,7 +29,7 @@ final class Model: ObservableObject, Identifiable {
         self.assetURL = assetURL; assetFileName = entry.fileName
         thumbnailFileName = entry.thumbnailFileName; placementRole = entry.placementRole
         gridFootprint = entry.gridFootprint; snapBehavior = entry.snapBehavior
-        scaleCompensation = entry.defaultScale
+        defaultScale = entry.defaultScale
         rotationXDegrees = entry.rotationXDegrees ?? 0
         thumbnail = Self.loadThumbnail(fileName: entry.thumbnailFileName, assetID: entry.id, bundle: bundle)
     }
@@ -43,7 +44,6 @@ final class Model: ObservableObject, Identifiable {
 
     func applyCatalogTransform(to entity: ModelEntity) {
         entity.orientation *= simd_quatf(angle: rotationXDegrees * .pi / 180, axis: [1, 0, 0])
-        entity.scale *= scaleCompensation
     }
 
     /// Keeps assets authored in different unit systems at a predictable world-builder size.
@@ -59,7 +59,7 @@ final class Model: ObservableObject, Identifiable {
             return
         }
 
-        entity.scale *= (placementSize * scaleCompensation) / largestDimension
+        entity.scale *= (placementSize * defaultScale) / largestDimension
         bounds = entity.visualBounds(relativeTo: parent)
         let bottomCenter = SIMD3<Float>(bounds.center.x, bounds.min.y, bounds.center.z)
         entity.position += placementPosition - bottomCenter

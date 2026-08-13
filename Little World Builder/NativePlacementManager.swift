@@ -18,7 +18,7 @@ final class NativePlacementManager {
         indicator.isEnabled = false
     }
 
-    func update(in arView: ARView, isPlacementActive: Bool) {
+    func update(in arView: ARView, isPlacementActive: Bool, alignment: ARRaycastQuery.TargetAlignment) {
         guard isPlacementActive else {
             latestPlacementTransform = nil
             indicator.isEnabled = false
@@ -26,7 +26,7 @@ final class NativePlacementManager {
         }
 
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
-        guard let query = arView.makeRaycastQuery(from: center, allowing: .estimatedPlane, alignment: .any),
+        guard let query = arView.makeRaycastQuery(from: center, allowing: .estimatedPlane, alignment: alignment),
               let result = arView.session.raycast(query).first else {
             latestPlacementTransform = nil
             indicator.isEnabled = false

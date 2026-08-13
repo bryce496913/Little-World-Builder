@@ -1,9 +1,27 @@
 #!/usr/bin/env python3
 """Validate the authoritative local asset catalog. Run from any directory."""
-import json, pathlib, sys
+import json, pathlib, struct, sys, zlib
 root=pathlib.Path(__file__).resolve().parents[1]
 manifest=root/'Little World Builder'/'AssetManifest.json'; assets=root/'App Ready USDZ'; thumbs=root/'Thumbnails'
 errors=[]
+
+def validate_png(path):
+ """Decode the PNG's compressed image stream without third-party dependencies."""
+ data=path.read_bytes()
+ if not data.startswith(b'\x89PNG\r\n\x1a\n'): raise ValueError('not a PNG file')
+ offset=8; width=height=None; image_data=bytearray(); saw_end=False
+ while offset < len(data):
+  if offset+12 > len(data): raise ValueError('truncated PNG chunk')
+  length=struct.unpack('>I',data[offset:offset+4])[0]; kind=data[offset+4:offset+8]
+  end=offset+12+length
+  if end > len(data): raise ValueError('truncated PNG chunk data')
+  payload=data[offset+8:offset+8+length]
+  if kind == b'IHDR': width,height=struct.unpack('>II',payload[:8])
+  elif kind == b'IDAT': image_data.extend(payload)
+  elif kind == b'IEND': saw_end=True; break
+  offset=end
+ if not width or not height or not image_data or not saw_end: raise ValueError('missing required PNG chunks')
+ zlib.decompress(image_data)
 if not manifest.is_file(): errors.append(f'missing manifest: {manifest}'); entries=[]
 else:
  try: entries=json.loads(manifest.read_text())
@@ -18,6 +36,8 @@ for i,e in enumerate(entries):
  ids.add(e.get('id'))
  if e.get('fileName') in names: errors.append(f'duplicate manifest filename: {e.get("fileName")}')
  names.add(e.get('fileName'))
+ if pathlib.Path(e.get('fileName','')).stem != pathlib.Path(e.get('thumbnailFileName','')).stem:
+  errors.append(f'{label}: thumbnail filename must match USDZ filename')
  if e.get('category') not in {'land','water','trees','plants','creatures','vehicles','structures','decor','misc'}: errors.append(f'{label}: invalid category')
  if e.get('placementRole') not in {'base','water','decor','tree','plant','creature','structure','vehicle','misc'}: errors.append(f'{label}: invalid placementRole')
  if e.get('snapBehavior') not in {'ground','water','floating','free'}: errors.append(f'{label}: invalid snapBehavior')
@@ -36,6 +56,11 @@ for i,e in enumerate(entries):
   elif asset.stat().st_size < 1024: errors.append(f'{label}: {asset.name} is implausibly small ({asset.stat().st_size} bytes)')
  thumb=thumbs/e.get('thumbnailFileName','')
  if not thumb.is_file(): errors.append(f'{label}: missing thumbnail {thumb.name}')
+ else:
+  try:
+   if thumb.suffix.lower() == '.png': validate_png(thumb)
+   else: raise ValueError('only PNG manifest thumbnails are supported')
+  except Exception as exc: errors.append(f'{label}: invalid thumbnail {thumb.name}: {exc}')
 bundled={p.name for p in assets.glob('*.usdz')}; listed={n for n in names if n}
 for name in sorted(bundled-listed): errors.append(f'unlisted bundled USDZ: {name}')
 for name in sorted(listed-bundled): errors.append(f'manifest USDZ missing from bundle: {name}')

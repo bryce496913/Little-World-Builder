@@ -2,3 +2,12 @@
 # through the LFS clean filter when code-only changes are staged.
 App[[:space:]]Ready[[:space:]]USDZ/*.usdz -filter -diff -merge -text
 3MF/USDZ/**/*.usdz filter=lfs diff=lfs merge=lfs -text
+# Thumbnail binaries are stored through LFS so code-review diffs contain pointers.
+Thumbnails/floating_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/forest_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/lagoon_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/plane.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/rocky_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/sandy_beach_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/snow_island.png filter=lfs diff=lfs merge=lfs -text
+Thumbnails/volcano_island.png filter=lfs diff=lfs merge=lfs -text

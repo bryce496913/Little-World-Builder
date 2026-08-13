@@ -1,14 +1,17 @@
 # Grid placement
 
 Grid placement is an optional layer after `NativePlacementManager`'s native surface raycast. The
-raycast remains responsible only for finding a world-space surface transform. `ARViewContainer`
+raycast remains responsible only for finding a world-space surface transform. Grid placement uses
+horizontal raycasts for every snapped asset; free-build mode and manifest assets marked `free` keep
+the any-alignment raycast so they can be placed on vertical surfaces. `ARViewContainer`
 converts that transform to the one active `build-root` coordinate space and passes the local
 transform and authoritative manifest metadata to `GridSnapResolver`.
 
 The root-local X/Z plane is the grid plane and local Y is vertical. Odd footprint dimensions use
 whole-cell centers; even dimensions use a half-cell phase. The 90-degree yaw is resolved before
-footprint parity, so odd quarter turns exchange footprint width and depth. Ground and water assets
-use local Y zero, floating assets preserve local Y, and `free` assets bypass the resolver even when
+footprint parity, so odd quarter turns exchange footprint width and depth. In this first version,
+both ground and water mean "grid-snapped to the build-root plane" and use local Y zero; there is no
+separate water layer or water-height offset yet. Floating assets preserve local Y, and `free` assets bypass the resolver even when
 the overlay is enabled. Free Build always uses the unmodified local raycast transform.
 
 `SavedGridConfiguration` is optional within schema 2. Existing schema-2 worlds therefore decode as
