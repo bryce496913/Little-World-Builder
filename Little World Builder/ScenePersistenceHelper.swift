@@ -12,7 +12,7 @@ final class ScenePersistenceHelper {
             guard transform.isFinite else { print("World Persistence Warning: non-finite transform for \(record.id)"); return nil }
             return SavedPlacedAsset(id:record.id,catalogAssetID:record.catalogAssetID,assetFileName:record.assetFileName,displayName:record.displayName,category:record.category,localTransform:transform)
         }.sorted { $0.id.uuidString < $1.id.uuidString }
-        return SavedWorld(id:UUID(),name:"Saved World",createdAt:now,updatedAt:now,placedAssets:assets,thumbnailFileName:nil)
+        return SavedWorld(id:UUID(),name:"Saved World",createdAt:now,updatedAt:now,placedAssets:assets,thumbnailFileName:nil,gridConfiguration:worldManager.gridConfiguration)
     }
     static func saveWorld(using worldManager: WorldManager) { if let world=makeWorld(from:worldManager) { worldManager.save(world) } }
 }

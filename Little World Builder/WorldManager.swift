@@ -16,6 +16,7 @@ final class WorldManager: ObservableObject {
     private(set) var buildRoot: Entity?
     private(set) var placedAssets: [UUID: PlacedAssetRecord] = [:]
     private let store = SavedWorldStore.shared
+    private(set) var gridConfiguration: SavedGridConfiguration?
 
     func activate(anchor: AnchorEntity, buildRoot: Entity) { resetActiveWorld(); self.activeAnchor = anchor; self.buildRoot = buildRoot }
     func register(_ entity: ModelEntity, model: Model, instanceID: UUID = UUID(), displayName: String? = nil, category: ModelCategory? = nil) {
@@ -23,7 +24,8 @@ final class WorldManager: ObservableObject {
         entity.components.set(LocalModelComponent(instanceID: instanceID, catalogAssetID: model.id, assetFileName: model.assetFileName))
     }
     func remove(entity: Entity) { if let item = placedAssets.first(where: { $0.value.entity === entity }) { placedAssets.removeValue(forKey: item.key) }; entity.removeFromParent() }
-    func resetActiveWorld() { activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll() }
+    func resetActiveWorld() { activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); gridConfiguration=nil }
+    func setGridConfiguration(_ configuration: SavedGridConfiguration?) { gridConfiguration = configuration }
     func savedWorlds() -> [SavedWorld] { store.loadAll() }
     func save(_ world: SavedWorld) { store.save(world) }
     func delete(_ world: SavedWorld) { store.delete(world) }

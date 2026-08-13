@@ -4,6 +4,34 @@ import simd
 @testable import Little_World_Builder
 
 final class Little_World_BuilderTests: XCTestCase {
+    func testGridSettingsValidationFallsBackToSafeDefaults() throws {
+        let malformed = "{\"cellSizeMeters\":-1,\"rotationStepDegrees\":45.5,\"visibleRadiusInCells\":999}".data(using: .utf8)!
+        XCTAssertEqual(try JSONDecoder().decode(GridSettings.self, from: malformed), .default)
+    }
+
+    func testGridResolverUsesFootprintParityAndRotatedFootprint() throws {
+        let raw = Transform(scale: .one, rotation: simd_quatf(angle: 0.3, axis: [0, 1, 0]), translation: [0.12, 0.7, 0.24])
+        let result = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: raw, footprint: .init(width: 2, depth: 3), snapBehavior: .ground, settings: .default, requestedQuarterTurns: 1))
+        XCTAssertEqual(result.effectiveFootprint, GridFootprint(width: 3, depth: 2))
+        XCTAssertEqual(result.transform.translation.x, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(result.transform.translation.z, 0.25, accuracy: 0.0001)
+        XCTAssertEqual(result.transform.translation.y, 0, accuracy: 0.0001)
+    }
+
+    func testFloatingPreservesHeightAndFreeBypassesGrid() throws {
+        let raw = Transform(scale: [2, 2, 2], rotation: simd_quatf(angle: 0.37, axis: [0, 1, 0]), translation: [0.12, 0.7, 0.24])
+        let floating = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: raw, footprint: .init(width: 1, depth: 1), snapBehavior: .floating, settings: .default, requestedQuarterTurns: 2))
+        XCTAssertEqual(floating.transform.translation.y, 0.7)
+        let free = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: raw, footprint: .init(width: 2, depth: 2), snapBehavior: .free, settings: .default, requestedQuarterTurns: 3))
+        XCTAssertEqual(free.transform.translation, raw.translation)
+        XCTAssertEqual(free.transform.rotation.vector, raw.rotation.vector)
+        XCTAssertEqual(free.transform.scale, raw.scale)
+    }
+
+    func testSchemaV2WithoutOptionalGridConfigurationRemainsCompatible() throws {
+        let json = "{\"schemaVersion\":2,\"id\":\"\(UUID().uuidString)\",\"name\":\"Old v2\",\"createdAt\":0,\"updatedAt\":0,\"placedAssets\":[]}".data(using: .utf8)!
+        XCTAssertNil(try JSONDecoder().decode(SavedWorld.self, from: json).gridConfiguration)
+    }
     private var root: URL { URL(fileURLWithPath:#filePath).deletingLastPathComponent().deletingLastPathComponent() }
     private func manifest() throws -> [AssetManifestEntry] { try AssetManifestLoader.decode(Data(contentsOf:root.appendingPathComponent("Little World Builder/AssetManifest.json"))) }
 
