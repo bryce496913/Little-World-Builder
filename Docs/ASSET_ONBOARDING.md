@@ -8,7 +8,7 @@
 4. Add a real, decodable thumbnail under `Thumbnails/`.
 5. Add exactly one `Little World Builder/AssetManifest.json` entry with a stable ID and exact filenames.
 6. Choose an explicit category and placement role.
-7. Set a finite, positive default scale (normally `1.0`).
+7. Set a finite, positive default scale (normally `1.0`). The app then normalizes the asset's largest visual dimension to `0.18 m` per grid-footprint cell, so authoring-unit differences do not produce an unexpectedly huge model.
 8. Set positive integer grid-footprint width and depth (metadata only; no grid behavior exists yet).
 9. Choose `ground`, `water`, `floating`, or `free` snap behavior (metadata only).
 10. Run `python3 Scripts/validate_assets.py`.

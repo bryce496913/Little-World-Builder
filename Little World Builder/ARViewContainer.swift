@@ -42,7 +42,9 @@ struct ARViewContainer: UIViewRepresentable {
         }
         guard let local=WorldTransformMath.localMatrix(world:requestedWorld,rootWorld:root.transformMatrix(relativeTo:nil)) else { print("Placement Error: invalid/non-invertible build-root transform"); return }
         let clone=source.clone(recursive:true); clone.name="placed-\(UUID().uuidString)"; clone.transform=Transform(matrix:local); model.applyCatalogTransform(to:clone)
-        configure(clone,in:arView); root.addChild(clone); worldManager.register(clone,model:model)
+        let placementPosition=SIMD3<Float>(local.columns.3.x,local.columns.3.y,local.columns.3.z)
+        root.addChild(clone); model.normalizePlacementSize(of:clone,relativeTo:root,at:placementPosition)
+        configure(clone,in:arView); worldManager.register(clone,model:model)
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
     }
 

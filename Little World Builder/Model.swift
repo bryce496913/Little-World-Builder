@@ -42,8 +42,27 @@ final class Model: ObservableObject, Identifiable {
     }
 
     func applyCatalogTransform(to entity: ModelEntity) {
-        entity.scale *= scaleCompensation
         entity.orientation *= simd_quatf(angle: rotationXDegrees * .pi / 180, axis: [1, 0, 0])
+        entity.scale *= scaleCompensation
+    }
+
+    /// Keeps assets authored in different unit systems at a predictable world-builder size.
+    var placementSize: Float {
+        0.18 * Float(max(gridFootprint.width, gridFootprint.depth))
+    }
+
+    func normalizePlacementSize(of entity: ModelEntity, relativeTo parent: Entity, at placementPosition: SIMD3<Float>) {
+        var bounds = entity.visualBounds(relativeTo: parent)
+        let largestDimension = max(bounds.extents.x, max(bounds.extents.y, bounds.extents.z))
+        guard largestDimension.isFinite, largestDimension > 0 else {
+            print("Placement Warning: \(assetFileName) has invalid visual bounds; using its authored size.")
+            return
+        }
+
+        entity.scale *= (placementSize * scaleCompensation) / largestDimension
+        bounds = entity.visualBounds(relativeTo: parent)
+        let bottomCenter = SIMD3<Float>(bounds.center.x, bounds.min.y, bounds.center.z)
+        entity.position += placementPosition - bottomCenter
     }
 
     static func loadThumbnail(fileName: String, assetID: String, bundle: Bundle = .main) -> UIImage {
