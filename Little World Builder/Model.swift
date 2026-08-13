@@ -20,6 +20,7 @@ final class Model: ObservableObject, Identifiable {
     @Published var thumbnail: UIImage
     var modelEntity: ModelEntity?
     let scaleCompensation: Float
+    let rotationXDegrees: Float
     private var cancellable: AnyCancellable?
 
     init(entry: AssetManifestEntry, assetURL: URL, bundle: Bundle = .main) {
@@ -28,6 +29,7 @@ final class Model: ObservableObject, Identifiable {
         thumbnailFileName = entry.thumbnailFileName; placementRole = entry.placementRole
         gridFootprint = entry.gridFootprint; snapBehavior = entry.snapBehavior
         scaleCompensation = entry.defaultScale
+        rotationXDegrees = entry.rotationXDegrees ?? 0
         thumbnail = Self.loadThumbnail(fileName: entry.thumbnailFileName, assetID: entry.id, bundle: bundle)
     }
 
@@ -35,8 +37,13 @@ final class Model: ObservableObject, Identifiable {
         cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL).sink(receiveCompletion: {
             if case .failure(let error) = $0 { print("Model Error: \(self.assetFileName): \(error.localizedDescription)"); handler(false, error) }
         }, receiveValue: { entity in
-            self.modelEntity = entity; entity.scale *= self.scaleCompensation; handler(true, nil)
+            self.modelEntity = entity; handler(true, nil)
         })
+    }
+
+    func applyCatalogTransform(to entity: ModelEntity) {
+        entity.scale *= scaleCompensation
+        entity.orientation *= simd_quatf(angle: rotationXDegrees * .pi / 180, axis: [1, 0, 0])
     }
 
     static func loadThumbnail(fileName: String, assetID: String, bundle: Bundle = .main) -> UIImage {

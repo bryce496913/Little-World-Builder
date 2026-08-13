@@ -23,6 +23,8 @@ for i,e in enumerate(entries):
  if e.get('snapBehavior') not in {'ground','water','floating','free'}: errors.append(f'{label}: invalid snapBehavior')
  scale=e.get('defaultScale');
  if not isinstance(scale,(int,float)) or scale <= 0: errors.append(f'{label}: defaultScale must be positive')
+ rotation=e.get('rotationXDegrees',0)
+ if not isinstance(rotation,(int,float)): errors.append(f'{label}: rotationXDegrees must be numeric')
  fp=e.get('gridFootprint',{})
  if not all(isinstance(fp.get(k),int) and fp[k]>0 for k in ('width','depth')): errors.append(f'{label}: footprint dimensions must be positive integers')
  asset=assets/e.get('fileName','')

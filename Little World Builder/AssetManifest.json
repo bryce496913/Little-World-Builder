@@ -53,7 +53,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "forest_island",
@@ -67,7 +68,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "lagoon_island",
@@ -81,7 +83,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "large-island",
@@ -165,7 +168,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "sandy_beach_island",
@@ -179,7 +183,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "smaller-mount",
@@ -193,7 +198,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "snow_island",
@@ -207,7 +213,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "tree-group",
@@ -221,7 +228,8 @@
       "width": 1,
       "depth": 1
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "tree",
@@ -235,7 +243,8 @@
       "width": 1,
       "depth": 1
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "volcano_island",
@@ -249,7 +258,8 @@
       "width": 3,
       "depth": 3
     },
-    "snapBehavior": "ground"
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "water-high",
@@ -263,7 +273,8 @@
       "width": 1,
       "depth": 1
     },
-    "snapBehavior": "water"
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "water-low",
@@ -277,7 +288,8 @@
       "width": 1,
       "depth": 1
     },
-    "snapBehavior": "water"
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
   },
   {
     "id": "whale",
@@ -291,6 +303,7 @@
       "width": 1,
       "depth": 1
     },
-    "snapBehavior": "water"
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
   }
 ]
