@@ -11,6 +11,7 @@ import Combine
 
 final class CustomARView: ARView {
     let nativePlacementManager = NativePlacementManager()
+    let gridVisuals = GridVisualController()
     private let coachingOverlay = ARCoachingOverlayView()
     var sessionSettings: SessionSettings
     var modelDeletionManager: ModelDeletionManager

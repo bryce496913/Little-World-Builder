@@ -21,10 +21,13 @@ struct SavedWorld: Codable, Identifiable {
     var updatedAt: Date
     var placedAssets: [SavedPlacedAsset]
     var thumbnailFileName: String?
+    /// Optional in schema 2 so existing portable worlds decode unchanged and default to Free Build.
+    var gridConfiguration: SavedGridConfiguration?
 
-    init(id: UUID, name: String, createdAt: Date, updatedAt: Date, placedAssets: [SavedPlacedAsset], thumbnailFileName: String?) {
+    init(id: UUID, name: String, createdAt: Date, updatedAt: Date, placedAssets: [SavedPlacedAsset], thumbnailFileName: String?, gridConfiguration: SavedGridConfiguration? = nil) {
         self.id = id; self.name = name; self.createdAt = createdAt; self.updatedAt = updatedAt
         self.placedAssets = placedAssets; self.thumbnailFileName = thumbnailFileName
+        self.gridConfiguration = gridConfiguration
     }
 
     init(from decoder: Decoder) throws {
@@ -36,7 +39,19 @@ struct SavedWorld: Codable, Identifiable {
         createdAt = try values.decode(Date.self, forKey: .createdAt); updatedAt = try values.decode(Date.self, forKey: .updatedAt)
         placedAssets = try values.decode([SavedPlacedAsset].self, forKey: .placedAssets)
         thumbnailFileName = try values.decodeIfPresent(String.self, forKey: .thumbnailFileName)
+        gridConfiguration = try values.decodeIfPresent(SavedGridConfiguration.self, forKey: .gridConfiguration)
         guard placedAssets.allSatisfy({ $0.localTransform.isFinite }) else { throw DecodingError.dataCorruptedError(forKey: .placedAssets, in: values, debugDescription: "Non-finite asset transform") }
+    }
+}
+
+struct SavedGridConfiguration: Codable, Equatable {
+    let cellSizeMeters: Float
+    let rotationStepDegrees: Float
+    let wasEnabled: Bool
+
+    var validatedSettings: GridSettings {
+        GridSettings(cellSizeMeters: cellSizeMeters, rotationStepDegrees: rotationStepDegrees,
+                     visibleRadiusInCells: GridSettings.default.visibleRadiusInCells)
     }
 }
 

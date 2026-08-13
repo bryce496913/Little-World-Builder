@@ -1,4 +1,5 @@
 import SwiftUI
+import ARKit
 
 struct PlacementView: View {
     @EnvironmentObject var placementSettings: PlacementSettings
@@ -13,6 +14,25 @@ struct PlacementView: View {
                 Text("Place \(pendingWorld.name)").appText(.h2)
             }
             Text(placementSettings.placementStatusMessage).appText(.paragraph, color: placementSettings.isPlacementAvailable ? AppTheme.highlight : AppTheme.mutedText)
+            if placementSettings.selectedModel != nil {
+                Picker("Placement mode", selection: $placementSettings.placementMode) {
+                    Text("Free").tag(PlacementMode.free)
+                    Text("Grid").tag(PlacementMode.grid)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel("Placement mode")
+                .accessibilityValue(placementSettings.placementMode == .grid ? "Snap Grid" : "Free")
+
+                if placementSettings.placementMode == .grid {
+                    HStack(spacing: 24) {
+                        Button { placementSettings.rotatePending(clockwise: false) } label: { Label("Rotate left", systemImage: "rotate.left") }
+                            .accessibilityLabel("Rotate pending asset left")
+                        Text("\(placementSettings.requestedQuarterTurns * 90)°").appText(.paragraph)
+                        Button { placementSettings.rotatePending(clockwise: true) } label: { Label("Rotate right", systemImage: "rotate.right") }
+                            .accessibilityLabel("Rotate pending asset right")
+                    }
+                }
+            }
             HStack(spacing: 18) {
                 AppButton("Cancel", systemImage: "xmark", style: .secondary) {
                     self.placementSettings.selectedModel = nil
@@ -25,7 +45,8 @@ struct PlacementView: View {
                     }
                     if let selectedModel = self.placementSettings.selectedModel {
                         print("Placement: confirmed Place for \(selectedModel.name) at \(selectedModel.assetURL.path).")
-                        self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: nil))
+                        let capturedSurface = self.placementSettings.latestRawWorldTransform.map(ARAnchor.init(transform:))
+                        self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: capturedSurface, modelTransform: self.placementSettings.latestResolvedTransform))
                     } else if let pendingWorld = self.worldManager.pendingWorldForPlacement {
                         print("World: confirmed placement for saved world \(pendingWorld.name).")
                         self.sceneManager.shouldPlacePendingWorld = true
@@ -40,5 +61,6 @@ struct PlacementView: View {
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(AppTheme.highlight, lineWidth: 1))
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
+        .onChange(of: placementSettings.selectedModel?.id) { _ in placementSettings.resetPendingRotation() }
     }
 }
