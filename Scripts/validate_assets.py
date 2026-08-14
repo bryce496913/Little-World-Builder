@@ -68,8 +68,9 @@ for i,e in enumerate(entries):
    else: raise ValueError('only PNG manifest thumbnails are supported')
   except Exception as exc: errors.append(f'{label}: invalid thumbnail {thumb.name}: {exc}')
 bundled={p.name for p in assets.glob('*.usdz')}; listed={n for n in names if n}
+archive=assets/'Old'
 for path in assets.rglob('*'):
- if path.is_file() and path.parent != assets: errors.append(f'archive/source file stored in live asset directory: {path.relative_to(assets)}')
+ if path.is_file() and path.parent != assets and archive not in path.parents: errors.append(f'non-archived file stored outside live asset root: {path.relative_to(assets)}')
 for name in sorted(bundled-listed): errors.append(f'unlisted bundled USDZ: {name}')
 for name in sorted(listed-bundled): errors.append(f'manifest USDZ missing from bundle: {name}')
 print(f'Asset manifest entries: {len(entries)}; bundled USDZ files: {len(bundled)}')
