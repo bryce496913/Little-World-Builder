@@ -103,5 +103,215 @@
     },
     "snapBehavior": "ground",
     "rotationXDegrees": -90.0
+  },
+  {
+    "id": "tree",
+    "fileName": "tree.usdz",
+    "displayName": "Tree",
+    "category": "trees",
+    "thumbnailFileName": "tree.png",
+    "defaultScale": 1.0,
+    "placementRole": "tree",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "tree_cluster",
+    "fileName": "tree_cluster.usdz",
+    "displayName": "Tree Cluster",
+    "category": "trees",
+    "thumbnailFileName": "tree_cluster.png",
+    "defaultScale": 1.0,
+    "placementRole": "tree",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "rock",
+    "fileName": "rock.usdz",
+    "displayName": "Rock",
+    "category": "decor",
+    "thumbnailFileName": "rock.png",
+    "defaultScale": 0.85,
+    "placementRole": "decor",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "rock_cluster",
+    "fileName": "rock_cluster.usdz",
+    "displayName": "Rock Cluster",
+    "category": "decor",
+    "thumbnailFileName": "rock_cluster.png",
+    "defaultScale": 1.0,
+    "placementRole": "decor",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "grass",
+    "fileName": "grass.usdz",
+    "displayName": "Grass",
+    "category": "plants",
+    "thumbnailFileName": "grass.png",
+    "defaultScale": 0.8,
+    "placementRole": "plant",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "flowers",
+    "fileName": "flowers.usdz",
+    "displayName": "Flowers",
+    "category": "plants",
+    "thumbnailFileName": "flowers.png",
+    "defaultScale": 0.8,
+    "placementRole": "plant",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "coral",
+    "fileName": "coral.usdz",
+    "displayName": "Coral",
+    "category": "plants",
+    "thumbnailFileName": "coral.png",
+    "defaultScale": 0.9,
+    "placementRole": "plant",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "calm_low_level_water",
+    "fileName": "calm_low_level_water.usdz",
+    "displayName": "Calm Low-Level Water",
+    "category": "water",
+    "thumbnailFileName": "calm_low_level_water.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "shallow_lagoon_ripples",
+    "fileName": "shallow_lagoon_ripples.usdz",
+    "displayName": "Shallow Lagoon Ripples",
+    "category": "water",
+    "thumbnailFileName": "shallow_lagoon_ripples.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 3
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "high_tide_ocean_swell",
+    "fileName": "high_tide_ocean_swell.usdz",
+    "displayName": "High-Tide Ocean Swell",
+    "category": "water",
+    "thumbnailFileName": "high_tide_ocean_swell.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 2
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "choppy_storm_seas",
+    "fileName": "choppy_storm_seas.usdz",
+    "displayName": "Choppy Storm Seas",
+    "category": "water",
+    "thumbnailFileName": "choppy_storm_seas.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "boiling_magical_springs",
+    "fileName": "boiling_magical_springs.usdz",
+    "displayName": "Boiling Magical Springs",
+    "category": "water",
+    "thumbnailFileName": "boiling_magical_springs.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "swampy_green_bubbling_water",
+    "fileName": "swampy_green_bubbling_water.usdz",
+    "displayName": "Swampy Green Bubbling Water",
+    "category": "water",
+    "thumbnailFileName": "swampy_green_bubbling_water.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "turquoise_river",
+    "fileName": "turquoise_river.usdz",
+    "displayName": "Turquoise River",
+    "category": "water",
+    "thumbnailFileName": "turquoise_river.png",
+    "defaultScale": 1.0,
+    "placementRole": "water",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 1
+    },
+    "snapBehavior": "water",
+    "rotationXDegrees": -90.0
   }
 ]
