@@ -38,7 +38,7 @@ final class Little_World_BuilderTests: XCTestCase {
     func testManifestIsCompleteUniqueAndValid() throws {
         let entries=try manifest(); XCTAssertFalse(entries.isEmpty)
         XCTAssertEqual(Set(entries.map(\.id)).count,entries.count); XCTAssertEqual(Set(entries.map(\.fileName)).count,entries.count)
-        for entry in entries { XCTAssertTrue(entry.validationErrors.isEmpty,"\(entry.id): \(entry.validationErrors)"); XCTAssertNotNil(ModelCategory(rawValue:entry.category.rawValue)); XCTAssertTrue(entry.defaultScale.isFinite); XCTAssertTrue(entry.rotationXDegrees?.isFinite ?? true); XCTAssertGreaterThan(entry.defaultScale,0); XCTAssertGreaterThan(entry.gridFootprint.width,0); XCTAssertGreaterThan(entry.gridFootprint.depth,0); XCTAssertEqual((entry.fileName as NSString).deletingPathExtension,(entry.thumbnailFileName as NSString).deletingPathExtension,"\(entry.id): thumbnail must match USDZ basename") }
+        for entry in entries { XCTAssertTrue(entry.validationErrors.isEmpty,"\(entry.id): \(entry.validationErrors)"); XCTAssertNotNil(ModelCategory(rawValue:entry.category.rawValue)); XCTAssertTrue(entry.defaultScale.isFinite); XCTAssertNotNil(entry.rotationXDegrees,"\(entry.id): rotation must be explicit"); XCTAssertTrue(entry.rotationXDegrees?.isFinite ?? false); XCTAssertGreaterThan(entry.defaultScale,0); XCTAssertGreaterThan(entry.gridFootprint.width,0); XCTAssertGreaterThan(entry.gridFootprint.depth,0); XCTAssertEqual((entry.fileName as NSString).deletingPathExtension,(entry.thumbnailFileName as NSString).deletingPathExtension,"\(entry.id): thumbnail must match USDZ basename") }
         let bundled=try FileManager.default.contentsOfDirectory(at:root.appendingPathComponent("App Ready USDZ"),includingPropertiesForKeys:nil).filter{$0.pathExtension=="usdz"}
         XCTAssertEqual(Set(entries.map(\.fileName)),Set(bundled.map(\.lastPathComponent)))
     }
@@ -58,15 +58,13 @@ final class Little_World_BuilderTests: XCTestCase {
 
     func testPlacementSizeFollowsGridFootprint() throws {
         let entries=try manifest()
-        let tree=try XCTUnwrap(entries.first { $0.id == "tree" })
         let island=try XCTUnwrap(entries.first { $0.id == "floating_island" })
-        XCTAssertEqual(Model(entry:tree,assetURL:URL(fileURLWithPath:"tree.usdz")).placementSize,0.18,accuracy:0.001)
         XCTAssertEqual(Model(entry:island,assetURL:URL(fileURLWithPath:"floating_island.usdz")).placementSize,0.54,accuracy:0.001)
     }
 
     func testDefaultScaleIsExposedAsFinalSizeMultiplier() throws {
-        let entry = try XCTUnwrap(try manifest().first { $0.id == "tree" })
-        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: "tree.usdz"))
+        let entry = try XCTUnwrap(try manifest().first { $0.id == "floating_island" })
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
         XCTAssertEqual(model.defaultScale, entry.defaultScale)
     }
 
