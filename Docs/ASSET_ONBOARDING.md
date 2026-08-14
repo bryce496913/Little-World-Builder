@@ -15,6 +15,8 @@
 11. Build the app and manually place the asset using free placement.
 12. Save the world, restore it at another surface, and confirm the layout round trip.
 
+Only manifest-listed, release-ready files belong directly in `App Ready USDZ/` and `Thumbnails/`. Move superseded or incomplete USDZ files to `3MF/USDZ/Old/` and thumbnails to `Thumbnails/Old/`; never keep an archive subdirectory inside `App Ready USDZ/`, because that entire directory is copied into the app bundle.
+
 ## Saved-world compatibility
 
 Schema V2 stores stable placed-instance and catalog IDs, exact filenames, and position/rotation/scale relative to the generic build root. Pre-V2 files lack reliable anchor transforms, so the app logs them as unsupported, leaves them on disk, and does not fabricate a migration.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate the authoritative local asset catalog. Run from any directory."""
-import json, pathlib, struct, sys, zlib
+import json, pathlib, struct, sys, zipfile, zlib
 root=pathlib.Path(__file__).resolve().parents[1]
 manifest=root/'Little World Builder'/'AssetManifest.json'; assets=root/'App Ready USDZ'; thumbs=root/'Thumbnails'
 errors=[]
@@ -29,7 +29,7 @@ else:
 ids=set(); names=set()
 for i,e in enumerate(entries):
  label=e.get('id') or f'entry {i}'
- for key in ('id','fileName','displayName','category','thumbnailFileName','defaultScale','placementRole','gridFootprint','snapBehavior'):
+ for key in ('id','fileName','displayName','category','thumbnailFileName','defaultScale','rotationXDegrees','placementRole','gridFootprint','snapBehavior'):
   if key not in e: errors.append(f'{label}: missing {key}')
  if not e.get('id','').strip(): errors.append(f'{label}: empty id')
  if e.get('id') in ids: errors.append(f'duplicate manifest id: {e.get("id")}')
@@ -54,6 +54,11 @@ for i,e in enumerate(entries):
   if data.startswith(b'version https://git-lfs.github.com/spec/v1'):
    errors.append(f'{label}: {asset.name} is an unresolved Git LFS pointer. Run: git lfs install && git lfs pull')
   elif asset.stat().st_size < 1024: errors.append(f'{label}: {asset.name} is implausibly small ({asset.stat().st_size} bytes)')
+  elif not zipfile.is_zipfile(asset): errors.append(f'{label}: {asset.name} is not a valid USDZ archive')
+  else:
+   with zipfile.ZipFile(asset) as archive:
+    if not any(pathlib.Path(name).suffix.lower() in {'.usd','.usda','.usdc'} for name in archive.namelist()):
+     errors.append(f'{label}: {asset.name} contains no USD scene')
  thumb=thumbs/e.get('thumbnailFileName','')
  if not thumb.is_file(): errors.append(f'{label}: missing thumbnail {thumb.name}')
  else:
@@ -62,6 +67,8 @@ for i,e in enumerate(entries):
    else: raise ValueError('only PNG manifest thumbnails are supported')
   except Exception as exc: errors.append(f'{label}: invalid thumbnail {thumb.name}: {exc}')
 bundled={p.name for p in assets.glob('*.usdz')}; listed={n for n in names if n}
+for path in assets.rglob('*'):
+ if path.is_file() and path.parent != assets: errors.append(f'archive/source file stored in live asset directory: {path.relative_to(assets)}')
 for name in sorted(bundled-listed): errors.append(f'unlisted bundled USDZ: {name}')
 for name in sorted(listed-bundled): errors.append(f'manifest USDZ missing from bundle: {name}')
 print(f'Asset manifest entries: {len(entries)}; bundled USDZ files: {len(bundled)}')
