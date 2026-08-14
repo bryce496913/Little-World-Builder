@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate the authoritative local asset catalog. Run from any directory."""
-import json, pathlib, struct, sys, zipfile, zlib
+import json, math, pathlib, struct, sys, zipfile, zlib
 root=pathlib.Path(__file__).resolve().parents[1]
 manifest=root/'Little World Builder'/'AssetManifest.json'; assets=root/'App Ready USDZ'; thumbs=root/'Thumbnails'
 errors=[]
@@ -42,7 +42,8 @@ for i,e in enumerate(entries):
  if e.get('placementRole') not in {'base','water','decor','tree','plant','creature','structure','vehicle','misc'}: errors.append(f'{label}: invalid placementRole')
  if e.get('snapBehavior') not in {'ground','water','floating','free'}: errors.append(f'{label}: invalid snapBehavior')
  scale=e.get('defaultScale');
- if not isinstance(scale,(int,float)) or scale <= 0: errors.append(f'{label}: defaultScale must be positive')
+ if not isinstance(scale,(int,float)) or isinstance(scale,bool) or not math.isfinite(scale) or scale <= 0:
+  errors.append(f'{label}: defaultScale must be positive and finite')
  rotation=e.get('rotationXDegrees',0)
  if not isinstance(rotation,(int,float)): errors.append(f'{label}: rotationXDegrees must be numeric')
  fp=e.get('gridFootprint',{})
