@@ -44,8 +44,9 @@ for i,e in enumerate(entries):
  scale=e.get('defaultScale');
  if not isinstance(scale,(int,float)) or isinstance(scale,bool) or not math.isfinite(scale) or scale <= 0:
   errors.append(f'{label}: defaultScale must be positive and finite')
- rotation=e.get('rotationXDegrees',0)
- if not isinstance(rotation,(int,float)): errors.append(f'{label}: rotationXDegrees must be numeric')
+ rotation=e.get('rotationXDegrees')
+ if not isinstance(rotation,(int,float)) or isinstance(rotation,bool) or not math.isfinite(rotation):
+  errors.append(f'{label}: rotationXDegrees must be explicit and finite')
  fp=e.get('gridFootprint',{})
  if not all(isinstance(fp.get(k),int) and fp[k]>0 for k in ('width','depth')): errors.append(f'{label}: footprint dimensions must be positive integers')
  asset=assets/e.get('fileName','')
@@ -64,13 +65,16 @@ for i,e in enumerate(entries):
  if not thumb.is_file(): errors.append(f'{label}: missing thumbnail {thumb.name}')
  else:
   try:
+   if thumb.read_bytes()[:256].startswith(b'version https://git-lfs.github.com/spec/v1'):
+    raise ValueError('unresolved Git LFS pointer')
    if thumb.suffix.lower() == '.png': validate_png(thumb)
    else: raise ValueError('only PNG manifest thumbnails are supported')
   except Exception as exc: errors.append(f'{label}: invalid thumbnail {thumb.name}: {exc}')
 bundled={p.name for p in assets.glob('*.usdz')}; listed={n for n in names if n}
-archive=assets/'Old'
-for path in assets.rglob('*'):
- if path.is_file() and path.parent != assets and archive not in path.parents: errors.append(f'non-archived file stored outside live asset root: {path.relative_to(assets)}')
+if assets.is_dir():
+ for path in sorted(assets.iterdir()):
+  if path.is_dir(): errors.append(f'subdirectory not allowed in live asset folder: {path.relative_to(assets)}')
+  elif path.suffix.lower() != '.usdz': errors.append(f'non-USDZ file in live asset folder: {path.relative_to(assets)}')
 for name in sorted(bundled-listed): errors.append(f'unlisted bundled USDZ: {name}')
 for name in sorted(listed-bundled): errors.append(f'manifest USDZ missing from bundle: {name}')
 print(f'Asset manifest entries: {len(entries)}; bundled USDZ files: {len(bundled)}')
