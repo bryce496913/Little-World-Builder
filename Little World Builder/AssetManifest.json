@@ -210,6 +210,96 @@
     "rotationXDegrees": -90.0
   },
   {
+    "id": "birds",
+    "fileName": "birds.usdz",
+    "displayName": "Birds",
+    "category": "creatures",
+    "thumbnailFileName": "birds.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 1
+    },
+    "snapBehavior": "floating",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "crabs",
+    "fileName": "crabs.usdz",
+    "displayName": "Crabs",
+    "category": "creatures",
+    "thumbnailFileName": "crabs.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "snapBehavior": "ground",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "fish",
+    "fileName": "fish.usdz",
+    "displayName": "Fish",
+    "category": "creatures",
+    "thumbnailFileName": "fish.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 1
+    },
+    "snapBehavior": "floating",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "manta",
+    "fileName": "manta.usdz",
+    "displayName": "Manta",
+    "category": "creatures",
+    "thumbnailFileName": "manta.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "floating",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "turtle",
+    "fileName": "turtle.usdz",
+    "displayName": "Turtle",
+    "category": "creatures",
+    "thumbnailFileName": "turtle.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 2,
+      "depth": 2
+    },
+    "snapBehavior": "floating",
+    "rotationXDegrees": -90.0
+  },
+  {
+    "id": "whale",
+    "fileName": "whale.usdz",
+    "displayName": "Whale",
+    "category": "creatures",
+    "thumbnailFileName": "whale.png",
+    "defaultScale": 1.0,
+    "placementRole": "creature",
+    "gridFootprint": {
+      "width": 3,
+      "depth": 2
+    },
+    "snapBehavior": "floating",
+    "rotationXDegrees": -90.0
+  },
+  {
     "id": "calm_low_level_water",
     "fileName": "calm_low_level_water.usdz",
     "displayName": "Calm Low-Level Water",

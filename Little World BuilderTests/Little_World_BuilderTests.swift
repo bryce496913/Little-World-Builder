@@ -37,10 +37,44 @@ final class Little_World_BuilderTests: XCTestCase {
 
     func testManifestIsCompleteUniqueAndValid() throws {
         let entries=try manifest(); XCTAssertFalse(entries.isEmpty)
+        XCTAssertEqual(entries.count, 27)
         XCTAssertEqual(Set(entries.map(\.id)).count,entries.count); XCTAssertEqual(Set(entries.map(\.fileName)).count,entries.count)
         for entry in entries { XCTAssertTrue(entry.validationErrors.isEmpty,"\(entry.id): \(entry.validationErrors)"); XCTAssertNotNil(ModelCategory(rawValue:entry.category.rawValue)); XCTAssertTrue(entry.defaultScale.isFinite); XCTAssertNotNil(entry.rotationXDegrees,"\(entry.id): rotation must be explicit"); XCTAssertTrue(entry.rotationXDegrees?.isFinite ?? false); XCTAssertGreaterThan(entry.defaultScale,0); XCTAssertGreaterThan(entry.gridFootprint.width,0); XCTAssertGreaterThan(entry.gridFootprint.depth,0); XCTAssertEqual((entry.fileName as NSString).deletingPathExtension,(entry.thumbnailFileName as NSString).deletingPathExtension,"\(entry.id): thumbnail must match USDZ basename") }
         let bundled=try FileManager.default.contentsOfDirectory(at:root.appendingPathComponent("App Ready USDZ"),includingPropertiesForKeys:nil).filter{$0.pathExtension=="usdz"}
         XCTAssertEqual(Set(entries.map(\.fileName)),Set(bundled.map(\.lastPathComponent)))
+    }
+
+    func testCreatureManifestMetadata() throws {
+        struct ExpectedCreature {
+            let fileName: String
+            let thumbnailFileName: String
+            let footprint: GridFootprint
+            let snapBehavior: SnapBehavior
+        }
+        let expected: [String: ExpectedCreature] = [
+            "birds": .init(fileName: "birds.usdz", thumbnailFileName: "birds.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating),
+            "crabs": .init(fileName: "crabs.usdz", thumbnailFileName: "crabs.png", footprint: .init(width: 1, depth: 1), snapBehavior: .ground),
+            "fish": .init(fileName: "fish.usdz", thumbnailFileName: "fish.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating),
+            "manta": .init(fileName: "manta.usdz", thumbnailFileName: "manta.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating),
+            "turtle": .init(fileName: "turtle.usdz", thumbnailFileName: "turtle.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating),
+            "whale": .init(fileName: "whale.usdz", thumbnailFileName: "whale.png", footprint: .init(width: 3, depth: 2), snapBehavior: .floating)
+        ]
+        let creatures = Dictionary(uniqueKeysWithValues: try manifest().filter { expected[$0.id] != nil }.map { ($0.id, $0) })
+        XCTAssertEqual(Set(creatures.keys), Set(expected.keys))
+        for (id, metadata) in expected {
+            let entry = try XCTUnwrap(creatures[id], "missing creature \(id)")
+            XCTAssertEqual(entry.fileName, metadata.fileName)
+            XCTAssertEqual(entry.thumbnailFileName, metadata.thumbnailFileName)
+            XCTAssertEqual(entry.category, .creatures)
+            XCTAssertEqual(entry.placementRole, .creature)
+            XCTAssertEqual(entry.gridFootprint, metadata.footprint)
+            XCTAssertEqual(entry.snapBehavior, metadata.snapBehavior)
+            XCTAssertTrue(entry.defaultScale.isFinite)
+            XCTAssertEqual(entry.defaultScale, 1.0)
+            XCTAssertNotNil(entry.rotationXDegrees)
+            XCTAssertTrue(entry.rotationXDegrees?.isFinite ?? false)
+            XCTAssertEqual(entry.rotationXDegrees, -90.0)
+        }
     }
 
     func testManifestResourcesAreResolvedAndNotPointers() throws {
