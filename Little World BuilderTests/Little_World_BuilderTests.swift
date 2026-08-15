@@ -1,6 +1,7 @@
 import XCTest
 import UIKit
 import simd
+import RealityKit
 @testable import Little_World_Builder
 
 final class Little_World_BuilderTests: XCTestCase {
@@ -50,14 +51,16 @@ final class Little_World_BuilderTests: XCTestCase {
             let thumbnailFileName: String
             let footprint: GridFootprint
             let snapBehavior: SnapBehavior
+            let defaultScale: Float
+            let targetRange: ClosedRange<Float>
         }
         let expected: [String: ExpectedCreature] = [
-            "birds": .init(fileName: "birds.usdz", thumbnailFileName: "birds.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating),
-            "crabs": .init(fileName: "crabs.usdz", thumbnailFileName: "crabs.png", footprint: .init(width: 1, depth: 1), snapBehavior: .ground),
-            "fish": .init(fileName: "fish.usdz", thumbnailFileName: "fish.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating),
-            "manta": .init(fileName: "manta.usdz", thumbnailFileName: "manta.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating),
-            "turtle": .init(fileName: "turtle.usdz", thumbnailFileName: "turtle.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating),
-            "whale": .init(fileName: "whale.usdz", thumbnailFileName: "whale.png", footprint: .init(width: 3, depth: 2), snapBehavior: .floating)
+            "birds": .init(fileName: "birds.usdz", thumbnailFileName: "birds.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
+            "crabs": .init(fileName: "crabs.usdz", thumbnailFileName: "crabs.png", footprint: .init(width: 1, depth: 1), snapBehavior: .ground, defaultScale: 0.75, targetRange: 0.10...0.16),
+            "fish": .init(fileName: "fish.usdz", thumbnailFileName: "fish.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
+            "manta": .init(fileName: "manta.usdz", thumbnailFileName: "manta.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 1.0, targetRange: 0.32...0.40),
+            "turtle": .init(fileName: "turtle.usdz", thumbnailFileName: "turtle.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
+            "whale": .init(fileName: "whale.usdz", thumbnailFileName: "whale.png", footprint: .init(width: 3, depth: 2), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.45...0.54)
         ]
         let creatures = Dictionary(uniqueKeysWithValues: try manifest().filter { expected[$0.id] != nil }.map { ($0.id, $0) })
         XCTAssertEqual(Set(creatures.keys), Set(expected.keys))
@@ -70,11 +73,39 @@ final class Little_World_BuilderTests: XCTestCase {
             XCTAssertEqual(entry.gridFootprint, metadata.footprint)
             XCTAssertEqual(entry.snapBehavior, metadata.snapBehavior)
             XCTAssertTrue(entry.defaultScale.isFinite)
-            XCTAssertEqual(entry.defaultScale, 1.0)
+            XCTAssertEqual(entry.defaultScale, metadata.defaultScale)
+            let effectivePlacementSize = 0.18 * Float(max(entry.gridFootprint.width, entry.gridFootprint.depth)) * entry.defaultScale
+            XCTAssertTrue(metadata.targetRange.contains(effectivePlacementSize), "\(id): \(effectivePlacementSize) is outside \(metadata.targetRange)")
             XCTAssertNotNil(entry.rotationXDegrees)
             XCTAssertTrue(entry.rotationXDegrees?.isFinite ?? false)
             XCTAssertEqual(entry.rotationXDegrees, -90.0)
         }
+
+        let effectiveSizes = creatures.mapValues { 0.18 * Float(max($0.gridFootprint.width, $0.gridFootprint.depth)) * $0.defaultScale }
+        let crabs = try XCTUnwrap(effectiveSizes["crabs"])
+        let whale = try XCTUnwrap(effectiveSizes["whale"])
+        XCTAssertTrue(effectiveSizes.filter { $0.key != "crabs" }.allSatisfy { crabs < $0.value })
+        XCTAssertTrue(effectiveSizes.filter { $0.key != "whale" }.allSatisfy { whale > $0.value })
+        XCTAssertLessThan(try XCTUnwrap(effectiveSizes["birds"]), try XCTUnwrap(effectiveSizes["manta"]))
+        XCTAssertLessThan(try XCTUnwrap(effectiveSizes["fish"]), try XCTUnwrap(effectiveSizes["manta"]))
+    }
+
+    func testCreatureNormalizationIsUniformAndInvalidBoundsAreSafe() throws {
+        let entry = try XCTUnwrap(try manifest().first { $0.id == "birds" })
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+        let parent = Entity()
+        let valid = ModelEntity(mesh: .generateBox(size: [2, 1, 0.5]))
+        valid.scale = [1, 1, 1]
+        parent.addChild(valid)
+        model.normalizePlacementSize(of: valid, relativeTo: parent, at: .zero)
+        XCTAssertEqual(valid.scale.x, valid.scale.y, accuracy: 0.0001)
+        XCTAssertEqual(valid.scale.y, valid.scale.z, accuracy: 0.0001)
+
+        let empty = ModelEntity()
+        empty.scale = [2, 2, 2]
+        parent.addChild(empty)
+        model.normalizePlacementSize(of: empty, relativeTo: parent, at: .zero)
+        XCTAssertEqual(empty.scale, [2, 2, 2])
     }
 
     func testManifestResourcesAreResolvedAndNotPointers() throws {
@@ -113,11 +144,12 @@ final class Little_World_BuilderTests: XCTestCase {
     }
 
     func testSchemaV2RoundTripPreservesRotationScaleAndInstanceIDs() throws {
-        let shared="floating_island"; let ids=[UUID(),UUID()]
-        let assets=ids.enumerated().map { i,id in SavedPlacedAsset(id:id,catalogAssetID:shared,assetFileName:"floating_island.usdz",displayName:"Floating Island",category:.land,localTransform:CodableTransform(position:.init(x:Float(i),y:2,z:3),rotation:.init(x:0,y:0.7071067,z:0,w:0.7071067),scale:.init(x:1,y:2,z:3))) }
+        let shared="whale"; let ids=[UUID(),UUID()]
+        let scales: [CodableVector3] = [.init(x: 0.9, y: 0.9, z: 0.9), .init(x: 1.2, y: 1.2, z: 1.2)]
+        let assets=ids.enumerated().map { i,id in SavedPlacedAsset(id:id,catalogAssetID:shared,assetFileName:"whale.usdz",displayName:"Whale",category:.creatures,localTransform:CodableTransform(position:.init(x:Float(i),y:2,z:3),rotation:.init(x:0,y:0.7071067,z:0,w:0.7071067),scale:scales[i])) }
         let world=SavedWorld(id:UUID(),name:"No required island",createdAt:Date(),updatedAt:Date(),placedAssets:assets,thumbnailFileName:nil)
         let decoded=try JSONDecoder().decode(SavedWorld.self,from:JSONEncoder().encode(world))
-        XCTAssertEqual(decoded.schemaVersion,2); XCTAssertEqual(decoded.placedAssets.map(\.id),ids); XCTAssertEqual(decoded.placedAssets[0].localTransform.rotation,assets[0].localTransform.rotation); XCTAssertEqual(decoded.placedAssets[0].localTransform.scale,assets[0].localTransform.scale)
+        XCTAssertEqual(decoded.schemaVersion,2); XCTAssertEqual(decoded.placedAssets.map(\.id),ids); XCTAssertEqual(decoded.placedAssets[0].localTransform.rotation,assets[0].localTransform.rotation); XCTAssertEqual(decoded.placedAssets.map(\.localTransform.scale),scales)
     }
 
     func testWorldWithNoIslandAndMultipleIslandsRoundTrips() throws {

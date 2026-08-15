@@ -215,7 +215,7 @@
     "displayName": "Birds",
     "category": "creatures",
     "thumbnailFileName": "birds.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.9,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -230,7 +230,7 @@
     "displayName": "Crabs",
     "category": "creatures",
     "thumbnailFileName": "crabs.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.75,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 1,
@@ -245,7 +245,7 @@
     "displayName": "Fish",
     "category": "creatures",
     "thumbnailFileName": "fish.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.9,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -275,7 +275,7 @@
     "displayName": "Turtle",
     "category": "creatures",
     "thumbnailFileName": "turtle.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.9,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -290,7 +290,7 @@
     "displayName": "Whale",
     "category": "creatures",
     "thumbnailFileName": "whale.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.9,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 3,
