@@ -110,7 +110,7 @@
     "displayName": "Tree",
     "category": "trees",
     "thumbnailFileName": "tree.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.5,
     "placementRole": "tree",
     "gridFootprint": {
       "width": 1,
@@ -125,7 +125,7 @@
     "displayName": "Tree Cluster",
     "category": "trees",
     "thumbnailFileName": "tree_cluster.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.5,
     "placementRole": "tree",
     "gridFootprint": {
       "width": 2,
@@ -140,7 +140,7 @@
     "displayName": "Rock",
     "category": "decor",
     "thumbnailFileName": "rock.png",
-    "defaultScale": 0.85,
+    "defaultScale": 0.45,
     "placementRole": "decor",
     "gridFootprint": {
       "width": 1,
@@ -155,7 +155,7 @@
     "displayName": "Rock Cluster",
     "category": "decor",
     "thumbnailFileName": "rock_cluster.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.5,
     "placementRole": "decor",
     "gridFootprint": {
       "width": 1,
@@ -170,7 +170,7 @@
     "displayName": "Grass",
     "category": "plants",
     "thumbnailFileName": "grass.png",
-    "defaultScale": 0.8,
+    "defaultScale": 0.4,
     "placementRole": "plant",
     "gridFootprint": {
       "width": 1,
@@ -185,7 +185,7 @@
     "displayName": "Flowers",
     "category": "plants",
     "thumbnailFileName": "flowers.png",
-    "defaultScale": 0.8,
+    "defaultScale": 0.4,
     "placementRole": "plant",
     "gridFootprint": {
       "width": 1,
@@ -200,7 +200,7 @@
     "displayName": "Coral",
     "category": "plants",
     "thumbnailFileName": "coral.png",
-    "defaultScale": 0.9,
+    "defaultScale": 0.45,
     "placementRole": "plant",
     "gridFootprint": {
       "width": 1,
@@ -215,7 +215,7 @@
     "displayName": "Birds",
     "category": "creatures",
     "thumbnailFileName": "birds.png",
-    "defaultScale": 0.9,
+    "defaultScale": 0.45,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -230,7 +230,7 @@
     "displayName": "Crabs",
     "category": "creatures",
     "thumbnailFileName": "crabs.png",
-    "defaultScale": 0.75,
+    "defaultScale": 0.35,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 1,
@@ -245,7 +245,7 @@
     "displayName": "Fish",
     "category": "creatures",
     "thumbnailFileName": "fish.png",
-    "defaultScale": 0.9,
+    "defaultScale": 0.45,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -260,7 +260,7 @@
     "displayName": "Manta",
     "category": "creatures",
     "thumbnailFileName": "manta.png",
-    "defaultScale": 1.0,
+    "defaultScale": 0.5,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -275,7 +275,7 @@
     "displayName": "Turtle",
     "category": "creatures",
     "thumbnailFileName": "turtle.png",
-    "defaultScale": 0.9,
+    "defaultScale": 0.45,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 2,
@@ -290,7 +290,7 @@
     "displayName": "Whale",
     "category": "creatures",
     "thumbnailFileName": "whale.png",
-    "defaultScale": 0.9,
+    "defaultScale": 0.45,
     "placementRole": "creature",
     "gridFootprint": {
       "width": 3,
@@ -312,7 +312,7 @@
       "depth": 3
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "shallow_lagoon_ripples",
@@ -327,7 +327,7 @@
       "depth": 3
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "high_tide_ocean_swell",
@@ -342,7 +342,7 @@
       "depth": 2
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "choppy_storm_seas",
@@ -357,7 +357,7 @@
       "depth": 2
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "boiling_magical_springs",
@@ -372,7 +372,7 @@
       "depth": 2
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "swampy_green_bubbling_water",
@@ -387,7 +387,7 @@
       "depth": 2
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   },
   {
     "id": "turquoise_river",
@@ -402,6 +402,6 @@
       "depth": 1
     },
     "snapBehavior": "water",
-    "rotationXDegrees": -90.0
+    "rotationXDegrees": 0.0
   }
 ]
