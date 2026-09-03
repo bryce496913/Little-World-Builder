@@ -1,10 +1,44 @@
 import XCTest
+import Combine
 import UIKit
 import simd
 import RealityKit
 @testable import Little_World_Builder
 
 final class Little_World_BuilderTests: XCTestCase {
+    func testSettingIdenticalGridConfigurationDoesNotPublishAgain() {
+        let manager = WorldManager()
+        let configuration = SavedGridConfiguration(cellSizeMeters: 0.1, rotationStepDegrees: 90, wasEnabled: true)
+        var publishCount = 0
+        let subscription = manager.objectWillChange.sink { publishCount += 1 }
+
+        manager.setGridConfiguration(configuration)
+        manager.setGridConfiguration(configuration)
+        manager.setGridConfiguration(configuration)
+
+        XCTAssertEqual(manager.gridConfiguration, configuration)
+        XCTAssertEqual(publishCount, 1)
+        withExtendedLifetime(subscription) {}
+    }
+
+    func testSavedGridConfigurationEqualityIncludesPlacementMode() {
+        let grid = SavedGridConfiguration(cellSizeMeters: 0.1, rotationStepDegrees: 90, wasEnabled: true)
+        XCTAssertEqual(grid, grid)
+        XCTAssertNotEqual(grid, SavedGridConfiguration(cellSizeMeters: 0.1, rotationStepDegrees: 90, wasEnabled: false))
+    }
+
+    func testPlacementModeCanSwitchToGridAndRemainSelected() {
+        let settings = PlacementSettings()
+        XCTAssertEqual(settings.placementMode, .free)
+
+        settings.setPlacementMode(.grid)
+        settings.setPlacementMode(.grid)
+
+        XCTAssertEqual(settings.placementMode, .grid)
+        settings.setPlacementMode(.free)
+        XCTAssertEqual(settings.placementMode, .free)
+    }
+
     func testGridSettingsValidationFallsBackToSafeDefaults() throws {
         let malformed = "{\"cellSizeMeters\":-1,\"rotationStepDegrees\":45.5,\"visibleRadiusInCells\":999}".data(using: .utf8)!
         XCTAssertEqual(try JSONDecoder().decode(GridSettings.self, from: malformed), .default)

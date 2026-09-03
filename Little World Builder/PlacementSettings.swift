@@ -43,6 +43,11 @@ final class PlacementSettings: ObservableObject {
     // This property retains the cancellable object for our SceneEvents.Update subscriber.
     var sceneObserver: Cancellable?
 
+    func setPlacementMode(_ mode: PlacementMode) {
+        guard placementMode != mode else { return }
+        placementMode = mode
+    }
+
     func rotatePending(clockwise: Bool) {
         requestedQuarterTurns = (requestedQuarterTurns + (clockwise ? 1 : 3)) % 4
     }
