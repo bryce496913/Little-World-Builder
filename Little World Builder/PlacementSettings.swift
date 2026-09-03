@@ -45,6 +45,7 @@ final class PlacementSettings: ObservableObject {
 
     func setPlacementMode(_ mode: PlacementMode) {
         guard placementMode != mode else { return }
+        print("Placement mode changed from \(placementMode.rawValue) to \(mode.rawValue)")
         placementMode = mode
     }
 
