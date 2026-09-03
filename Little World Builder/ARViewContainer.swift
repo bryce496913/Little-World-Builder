@@ -107,8 +107,8 @@ struct ARViewContainer: UIViewRepresentable {
             self.worldManager.setGridConfiguration(world.gridConfiguration)
             if let configuration=world.gridConfiguration {
                 self.placementSettings.gridSettings=configuration.validatedSettings
-                self.placementSettings.placementMode=configuration.wasEnabled ? .grid : .free
-            } else { self.placementSettings.placementMode = .free }
+                self.placementSettings.setPlacementMode(configuration.wasEnabled ? .grid : .free)
+            } else { self.placementSettings.setPlacementMode(.free) }
             if self.placementSettings.placementMode == .grid {
                 arView.gridVisuals.showGrid(settings: self.placementSettings.gridSettings, root: root, candidateWorldTransform: worldTransform, in: arView)
             } else { arView.gridVisuals.hideGrid() }

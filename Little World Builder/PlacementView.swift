@@ -17,7 +17,10 @@ struct PlacementView: View {
             if placementSettings.selectedModel != nil {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Placement Mode").appText(.paragraph, color: AppTheme.text)
-                    Picker("Placement Mode", selection: $placementSettings.placementMode) {
+                    Picker("Placement Mode", selection: Binding(
+                        get: { placementSettings.placementMode },
+                        set: { placementSettings.setPlacementMode($0) }
+                    )) {
                         Text("Free").tag(PlacementMode.free)
                         Text("Grid").tag(PlacementMode.grid)
                     }
@@ -26,7 +29,7 @@ struct PlacementView: View {
                     .accessibilityLabel("Placement Mode")
                     .accessibilityValue(placementSettings.placementMode == .grid ? "Grid" : "Free")
 
-                    Text("Grid snaps placement to the world grid.")
+                    Text("Grid snaps this asset to the world grid.")
                         .appText(.paragraph, color: AppTheme.mutedText)
                 }
 
