@@ -55,12 +55,12 @@ final class Little_World_BuilderTests: XCTestCase {
             let targetRange: ClosedRange<Float>
         }
         let expected: [String: ExpectedCreature] = [
-            "birds": .init(fileName: "birds.usdz", thumbnailFileName: "birds.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
-            "crabs": .init(fileName: "crabs.usdz", thumbnailFileName: "crabs.png", footprint: .init(width: 1, depth: 1), snapBehavior: .ground, defaultScale: 0.75, targetRange: 0.10...0.16),
-            "fish": .init(fileName: "fish.usdz", thumbnailFileName: "fish.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
-            "manta": .init(fileName: "manta.usdz", thumbnailFileName: "manta.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 1.0, targetRange: 0.32...0.40),
-            "turtle": .init(fileName: "turtle.usdz", thumbnailFileName: "turtle.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.28...0.36),
-            "whale": .init(fileName: "whale.usdz", thumbnailFileName: "whale.png", footprint: .init(width: 3, depth: 2), snapBehavior: .floating, defaultScale: 0.9, targetRange: 0.45...0.54)
+            "birds": .init(fileName: "birds.usdz", thumbnailFileName: "birds.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.45, targetRange: 0.15...0.17),
+            "crabs": .init(fileName: "crabs.usdz", thumbnailFileName: "crabs.png", footprint: .init(width: 1, depth: 1), snapBehavior: .ground, defaultScale: 0.35, targetRange: 0.05...0.07),
+            "fish": .init(fileName: "fish.usdz", thumbnailFileName: "fish.png", footprint: .init(width: 2, depth: 1), snapBehavior: .floating, defaultScale: 0.45, targetRange: 0.15...0.17),
+            "manta": .init(fileName: "manta.usdz", thumbnailFileName: "manta.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 0.5, targetRange: 0.17...0.19),
+            "turtle": .init(fileName: "turtle.usdz", thumbnailFileName: "turtle.png", footprint: .init(width: 2, depth: 2), snapBehavior: .floating, defaultScale: 0.45, targetRange: 0.15...0.17),
+            "whale": .init(fileName: "whale.usdz", thumbnailFileName: "whale.png", footprint: .init(width: 3, depth: 2), snapBehavior: .floating, defaultScale: 0.45, targetRange: 0.23...0.25)
         ]
         let creatures = Dictionary(uniqueKeysWithValues: try manifest().filter { expected[$0.id] != nil }.map { ($0.id, $0) })
         XCTAssertEqual(Set(creatures.keys), Set(expected.keys))
@@ -88,6 +88,33 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertTrue(effectiveSizes.filter { $0.key != "whale" }.allSatisfy { whale > $0.value })
         XCTAssertLessThan(try XCTUnwrap(effectiveSizes["birds"]), try XCTUnwrap(effectiveSizes["manta"]))
         XCTAssertLessThan(try XCTUnwrap(effectiveSizes["fish"]), try XCTUnwrap(effectiveSizes["manta"]))
+    }
+
+    func testObjectAndDecorScalesAreCalibratedBelowIslandScale() throws {
+        let expectedScales: [String: Float] = [
+            "tree": 0.5, "tree_cluster": 0.5, "rock": 0.45, "rock_cluster": 0.5,
+            "grass": 0.4, "flowers": 0.4, "coral": 0.45
+        ]
+        let entries = Dictionary(uniqueKeysWithValues: try manifest().map { ($0.id, $0) })
+        let island = try XCTUnwrap(entries["floating_island"])
+        XCTAssertEqual(island.defaultScale, 1.0)
+        for (id, expectedScale) in expectedScales {
+            let entry = try XCTUnwrap(entries[id], "missing calibrated asset \(id)")
+            XCTAssertEqual(entry.defaultScale, expectedScale)
+            XCTAssertLessThan(entry.defaultScale, island.defaultScale)
+        }
+    }
+
+    func testWaterUsesFlatCatalogOrientation() throws {
+        let expectedWaterIDs: Set<String> = [
+            "calm_low_level_water", "shallow_lagoon_ripples", "high_tide_ocean_swell",
+            "choppy_storm_seas", "boiling_magical_springs", "swampy_green_bubbling_water",
+            "turquoise_river"
+        ]
+        let waterEntries = try manifest().filter { $0.category == .water }
+        XCTAssertEqual(Set(waterEntries.map(\.id)), expectedWaterIDs)
+        XCTAssertTrue(waterEntries.allSatisfy { $0.rotationXDegrees == 0.0 })
+        XCTAssertTrue(waterEntries.allSatisfy { $0.defaultScale == 1.0 })
     }
 
     func testCreatureNormalizationIsUniformAndInvalidBoundsAreSafe() throws {

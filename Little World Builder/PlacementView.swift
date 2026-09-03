@@ -15,13 +15,20 @@ struct PlacementView: View {
             }
             Text(placementSettings.placementStatusMessage).appText(.paragraph, color: placementSettings.isPlacementAvailable ? AppTheme.highlight : AppTheme.mutedText)
             if placementSettings.selectedModel != nil {
-                Picker("Placement mode", selection: $placementSettings.placementMode) {
-                    Text("Free").tag(PlacementMode.free)
-                    Text("Grid").tag(PlacementMode.grid)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Placement Mode").appText(.paragraph, color: AppTheme.text)
+                    Picker("Placement Mode", selection: $placementSettings.placementMode) {
+                        Text("Free").tag(PlacementMode.free)
+                        Text("Grid").tag(PlacementMode.grid)
+                    }
+                    .pickerStyle(.segmented)
+                    .tint(AppTheme.accent)
+                    .accessibilityLabel("Placement Mode")
+                    .accessibilityValue(placementSettings.placementMode == .grid ? "Grid" : "Free")
+
+                    Text("Grid snaps placement to the world grid.")
+                        .appText(.paragraph, color: AppTheme.mutedText)
                 }
-                .pickerStyle(.segmented)
-                .accessibilityLabel("Placement mode")
-                .accessibilityValue(placementSettings.placementMode == .grid ? "Snap Grid" : "Free")
 
                 if placementSettings.placementMode == .grid {
                     HStack(spacing: 24) {
