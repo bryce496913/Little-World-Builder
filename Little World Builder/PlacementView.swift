@@ -17,17 +17,28 @@ struct PlacementView: View {
             if placementSettings.selectedModel != nil {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Placement Mode").appText(.paragraph, color: AppTheme.text)
-                    Picker("Placement Mode", selection: Binding(
-                        get: { placementSettings.placementMode },
-                        set: { placementSettings.setPlacementMode($0) }
-                    )) {
-                        Text("Free").tag(PlacementMode.free)
-                        Text("Grid").tag(PlacementMode.grid)
+                    HStack(spacing: 8) {
+                        Button {
+                            placementSettings.setPlacementMode(.free)
+                        } label: {
+                            placementModeLabel("Free", mode: .free)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Free")
+                        .accessibilityValue(placementSettings.placementMode == .free ? "Selected" : "Not selected")
+                        .accessibilityAddTraits(placementSettings.placementMode == .free ? .isSelected : [])
+
+                        Button {
+                            placementSettings.setPlacementMode(.grid)
+                        } label: {
+                            placementModeLabel("Grid", mode: .grid)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Grid")
+                        .accessibilityValue(placementSettings.placementMode == .grid ? "Selected" : "Not selected")
+                        .accessibilityAddTraits(placementSettings.placementMode == .grid ? .isSelected : [])
                     }
-                    .pickerStyle(.segmented)
-                    .tint(AppTheme.accent)
                     .accessibilityLabel("Placement Mode")
-                    .accessibilityValue(placementSettings.placementMode == .grid ? "Grid" : "Free")
 
                     Text("Grid snaps this asset to the world grid.")
                         .appText(.paragraph, color: AppTheme.mutedText)
@@ -72,5 +83,19 @@ struct PlacementView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
         .onChange(of: placementSettings.selectedModel?.id) { _ in placementSettings.resetPendingRotation() }
+    }
+
+    private func placementModeLabel(_ title: String, mode: PlacementMode) -> some View {
+        let isSelected = placementSettings.placementMode == mode
+        return Text(title)
+            .appText(.h3, color: isSelected ? AppTheme.text : AppTheme.mutedText)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background((isSelected ? AppTheme.accent : AppTheme.surface).opacity(isSelected ? 0.9 : 0.55))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(isSelected ? AppTheme.highlight : AppTheme.mutedText.opacity(0.45),
+                            lineWidth: isSelected ? 2 : 1)
+            )
     }
 }

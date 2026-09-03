@@ -32,11 +32,23 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(settings.placementMode, .free)
 
         settings.setPlacementMode(.grid)
-        settings.setPlacementMode(.grid)
-
         XCTAssertEqual(settings.placementMode, .grid)
         settings.setPlacementMode(.free)
         XCTAssertEqual(settings.placementMode, .free)
+    }
+
+    func testSettingIdenticalPlacementModeDoesNotPublishAgain() {
+        let settings = PlacementSettings()
+        var publishCount = 0
+        let subscription = settings.objectWillChange.sink { publishCount += 1 }
+
+        settings.setPlacementMode(.grid)
+        settings.setPlacementMode(.grid)
+        settings.setPlacementMode(.grid)
+
+        XCTAssertEqual(settings.placementMode, .grid)
+        XCTAssertEqual(publishCount, 1)
+        withExtendedLifetime(subscription) {}
     }
 
     func testGridSettingsValidationFallsBackToSafeDefaults() throws {
