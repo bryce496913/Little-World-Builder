@@ -152,15 +152,26 @@ final class Little_World_BuilderTests: XCTestCase {
     }
 
     func testWaterUsesFlatCatalogOrientation() throws {
-        let expectedWaterIDs: Set<String> = [
-            "calm_low_level_water", "shallow_lagoon_ripples", "high_tide_ocean_swell",
-            "choppy_storm_seas", "boiling_magical_springs", "swampy_green_bubbling_water",
-            "turquoise_river"
+        let expectedFootprints: [String: (width: Int, depth: Int)] = [
+            "calm_low_level_water": (6, 6),
+            "shallow_lagoon_ripples": (6, 6),
+            "high_tide_ocean_swell": (6, 4),
+            "choppy_storm_seas": (4, 4),
+            "boiling_magical_springs": (4, 4),
+            "swampy_green_bubbling_water": (4, 4),
+            "turquoise_river": (6, 2)
         ]
         let waterEntries = try manifest().filter { $0.category == .water }
-        XCTAssertEqual(Set(waterEntries.map(\.id)), expectedWaterIDs)
+        XCTAssertEqual(Set(waterEntries.map(\.id)), Set(expectedFootprints.keys))
         XCTAssertTrue(waterEntries.allSatisfy { $0.rotationXDegrees == 0.0 })
         XCTAssertTrue(waterEntries.allSatisfy { $0.defaultScale == 1.0 })
+        XCTAssertTrue(waterEntries.allSatisfy { $0.snapBehavior == .water })
+        XCTAssertTrue(waterEntries.allSatisfy { $0.placementRole == .water })
+        for entry in waterEntries {
+            let footprint = try XCTUnwrap(expectedFootprints[entry.id])
+            XCTAssertEqual(entry.gridFootprint.width, footprint.width, "\(entry.id) width")
+            XCTAssertEqual(entry.gridFootprint.depth, footprint.depth, "\(entry.id) depth")
+        }
     }
 
     func testCreatureNormalizationIsUniformAndInvalidBoundsAreSafe() throws {

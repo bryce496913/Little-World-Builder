@@ -308,8 +308,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 3,
-      "depth": 3
+      "width": 6,
+      "depth": 6
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -323,8 +323,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 3,
-      "depth": 3
+      "width": 6,
+      "depth": 6
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -338,8 +338,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 3,
-      "depth": 2
+      "width": 6,
+      "depth": 4
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -353,8 +353,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 2,
-      "depth": 2
+      "width": 4,
+      "depth": 4
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -368,8 +368,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 2,
-      "depth": 2
+      "width": 4,
+      "depth": 4
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -383,8 +383,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 2,
-      "depth": 2
+      "width": 4,
+      "depth": 4
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
@@ -398,8 +398,8 @@
     "defaultScale": 1.0,
     "placementRole": "water",
     "gridFootprint": {
-      "width": 3,
-      "depth": 1
+      "width": 6,
+      "depth": 2
     },
     "snapBehavior": "water",
     "rotationXDegrees": 0.0
