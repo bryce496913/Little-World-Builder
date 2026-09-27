@@ -6,6 +6,94 @@ import RealityKit
 @testable import Little_World_Builder
 
 final class Little_World_BuilderTests: XCTestCase {
+    private func registeredObject(id: String, name: String, in manager: WorldManager, root: Entity) -> (UUID, ModelEntity) {
+        let entry = AssetManifestEntry(id: id, fileName: "\(id).usdz", displayName: name, category: id == "tree" ? .trees : (id == "whale" ? .creatures : .land), thumbnailFileName: "\(id).png", defaultScale: 1, rotationXDegrees: 0, placementRole: id == "tree" ? .tree : (id == "whale" ? .creature : .base), gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+        let entity = ModelEntity(mesh: .generateBox(size: 0.1)); root.addChild(entity)
+        let instanceID = UUID(); manager.register(entity, model: model, instanceID: instanceID)
+        return (instanceID, entity)
+    }
+
+    private func activeManager() -> (WorldManager, Entity) {
+        let manager = WorldManager(); let root = Entity()
+        let anchor = AnchorEntity(); anchor.addChild(root); manager.activate(anchor: anchor, buildRoot: root)
+        return (manager, root)
+    }
+
+    func testRootAndChildMeshResolveToRegisteredBuildRootObject() throws {
+        let (manager, buildRoot) = activeManager()
+        let (id, root) = registeredObject(id: "tree", name: "Tree", in: manager, root: buildRoot)
+        let child = ModelEntity(mesh: .generateBox(size: 0.02)); root.addChild(child)
+        XCTAssertTrue(try XCTUnwrap(PlacedObjectResolver.registeredRoot(from: root, buildRoot: buildRoot)).entity === root)
+        let childResult = try XCTUnwrap(PlacedObjectResolver.registeredRoot(from: child, buildRoot: buildRoot))
+        XCTAssertTrue(childResult.entity === root); XCTAssertEqual(childResult.component.instanceID, id)
+    }
+
+    func testTreeIslandAndWhaleAreSelectedByStableIdentity() {
+        let (manager, root) = activeManager()
+        for (asset, name) in [("tree", "Tree"), ("floating_island", "Floating Island"), ("whale", "Whale")] {
+            let (id, _) = registeredObject(id: asset, name: name, in: manager, root: root)
+            XCTAssertTrue(manager.select(instanceID: id))
+            XCTAssertEqual(manager.interactionState.selection, .init(instanceID: id, catalogAssetID: asset))
+        }
+    }
+
+    func testTemporaryGridAndSelectionOutlinesAreIgnored() {
+        let (_, root) = activeManager()
+        for name in ["temporary-placement-guide", "build-grid-overlay", "selection-outline"] {
+            let visual = Entity(); visual.name = name; visual.components.set(NonSelectableComponent()); root.addChild(visual)
+            XCTAssertNil(PlacedObjectResolver.registeredRoot(from: visual, buildRoot: root))
+        }
+    }
+
+    func testEntityOutsideBuildRootIsIgnored() {
+        let (manager, root) = activeManager()
+        let otherRoot = Entity()
+        let (_, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: otherRoot)
+        XCTAssertNil(PlacedObjectResolver.registeredRoot(from: entity, buildRoot: root))
+    }
+
+    func testSelectionSwitchEmptyTapAndPlacementTransitions() {
+        let (manager, root) = activeManager()
+        let (first, _) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let (second, _) = registeredObject(id: "whale", name: "Whale", in: manager, root: root)
+        XCTAssertTrue(manager.select(instanceID: first)); XCTAssertTrue(manager.select(instanceID: second))
+        XCTAssertEqual(manager.interactionState.selection?.instanceID, second)
+        manager.clearSelection(); XCTAssertEqual(manager.interactionState, .browse)
+        XCTAssertTrue(manager.select(instanceID: first)); manager.beginPlacingAsset(catalogAssetID: "whale")
+        XCTAssertEqual(manager.interactionState, .placingAsset(catalogAssetID: "whale")); XCTAssertNil(manager.interactionState.selection)
+    }
+
+    func testDeleteSelectedRemovesOnlySelectionAndClearsEdit() {
+        let (manager, root) = activeManager()
+        let (selected, selectedEntity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let (other, otherEntity) = registeredObject(id: "whale", name: "Whale", in: manager, root: root)
+        manager.select(instanceID: selected)
+        XCTAssertTrue(manager.removeSelected()); XCTAssertNil(selectedEntity.parent)
+        XCTAssertNotNil(otherEntity.parent); XCTAssertNotNil(manager.record(for: other)); XCTAssertEqual(manager.interactionState, .browse)
+        XCTAssertFalse(manager.removeSelected())
+    }
+
+    func testWorldResetClearsSelection() {
+        let (manager, root) = activeManager()
+        let (id, _) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        manager.select(instanceID: id); manager.resetActiveWorld()
+        XCTAssertEqual(manager.interactionState, .browse); XCTAssertNil(manager.entity(for: id)); XCTAssertNil(manager.buildRoot)
+    }
+
+    func testRotationAndScaleAffectOnlySelectedRootAndNeverChildLocalTransform() {
+        let (manager, root) = activeManager()
+        let (selectedID, selected) = registeredObject(id: "whale", name: "Whale", in: manager, root: root)
+        let (_, other) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let child = Entity(); child.position = [0.02, 0.03, 0.04]; selected.addChild(child)
+        let childBefore = child.transform; let otherBefore = other.transform
+        manager.select(instanceID: selectedID)
+        selected.transform = SelectionTransformEditor.rotated(selected.transform, radians: .pi / 4)
+        selected.transform = SelectionTransformEditor.scaled(selected.transform, factor: 1.5)
+        XCTAssertEqual(selected.scale, SIMD3<Float>(repeating: 1.5)); XCTAssertNotEqual(selected.orientation.vector, SIMD4<Float>(0, 0, 0, 1))
+        XCTAssertEqual(other.position, otherBefore.translation); XCTAssertEqual(other.scale, otherBefore.scale); XCTAssertEqual(other.orientation.vector, otherBefore.rotation.vector)
+        XCTAssertEqual(child.position, childBefore.translation); XCTAssertEqual(child.scale, childBefore.scale); XCTAssertEqual(child.orientation.vector, childBefore.rotation.vector)
+    }
     private func objectCandidate(normal: SIMD3<Float> = [0, 1, 0],
                                  category: ModelCategory? = .land,
                                  role: PlacementRole? = .base,

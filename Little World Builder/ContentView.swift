@@ -10,7 +10,6 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var placementSettings: PlacementSettings
     @EnvironmentObject var modelsViewModel: ModelsViewModel
-    @EnvironmentObject var modelDeletionManager: ModelDeletionManager
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var worldManager: WorldManager
     @Environment(\.dismiss) private var dismiss
@@ -29,8 +28,8 @@ struct ContentView: View {
 
             if self.placementSettings.selectedModel != nil || self.worldManager.pendingWorldForPlacement != nil {
                 PlacementView()
-            } else if self.modelDeletionManager.entitySelectedForDeletion != nil {
-                DeletionView()
+            } else if self.worldManager.interactionState.selection != nil {
+                EditView()
             } else {
                 ControlView(selectControlMode: $selectedControlMode, isControlsVisible: $isControlsVisible, showBrowse: $showBrowse)
             }
@@ -40,6 +39,9 @@ struct ContentView: View {
         .navigationBarHidden(true)
         .onAppear {
             self.modelsViewModel.fetchData()
+        }
+        .onDisappear {
+            self.worldManager.clearSelection()
         }
     }
 }
@@ -80,7 +82,6 @@ struct ContentView_Previews: PreviewProvider {
             .environmentObject(SessionSettings())
             .environmentObject(SceneManager())
             .environmentObject(ModelsViewModel())
-            .environmentObject(ModelDeletionManager())
             .environmentObject(WorldManager())
     }
 }

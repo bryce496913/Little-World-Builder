@@ -10,6 +10,23 @@ struct PlacedAssetRecord {
     weak var entity: ModelEntity?
 }
 
+struct PlacedObjectSelection: Equatable {
+    let instanceID: UUID
+    let catalogAssetID: String
+}
+
+enum BuilderInteractionState: Equatable {
+    case browse
+    case placingAsset(catalogAssetID: String)
+    case editing(PlacedObjectSelection)
+    case placingSavedWorld(worldID: UUID)
+
+    var selection: PlacedObjectSelection? {
+        guard case .editing(let selection) = self else { return nil }
+        return selection
+    }
+}
+
 final class WorldManager: ObservableObject {
     @Published private(set) var pendingWorldForPlacement: SavedWorld?
     private(set) var activeAnchor: AnchorEntity?
@@ -17,14 +34,65 @@ final class WorldManager: ObservableObject {
     private(set) var placedAssets: [UUID: PlacedAssetRecord] = [:]
     private let store = SavedWorldStore.shared
     @Published private(set) var gridConfiguration: SavedGridConfiguration?
+    @Published private(set) var interactionState: BuilderInteractionState = .browse
 
     func activate(anchor: AnchorEntity, buildRoot: Entity) { resetActiveWorld(); self.activeAnchor = anchor; self.buildRoot = buildRoot }
     func register(_ entity: ModelEntity, model: Model, instanceID: UUID = UUID(), displayName: String? = nil, category: ModelCategory? = nil) {
         placedAssets[instanceID] = PlacedAssetRecord(id: instanceID, catalogAssetID: model.id, assetFileName: model.assetFileName, displayName: displayName ?? model.name, category: category ?? model.category, entity: entity)
         entity.components.set(LocalModelComponent(instanceID: instanceID, catalogAssetID: model.id, assetFileName: model.assetFileName))
     }
-    func remove(entity: Entity) { if let item = placedAssets.first(where: { $0.value.entity === entity }) { placedAssets.removeValue(forKey: item.key) }; entity.removeFromParent() }
-    func resetActiveWorld() { activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); setGridConfiguration(nil) }
+    func record(for instanceID: UUID) -> PlacedAssetRecord? {
+        guard let record = placedAssets[instanceID], record.entity?.parent != nil else { return nil }
+        return record
+    }
+    func entity(for instanceID: UUID) -> ModelEntity? { record(for: instanceID)?.entity }
+
+    @discardableResult
+    func select(instanceID: UUID) -> Bool {
+        guard let record = record(for: instanceID), belongsToActiveBuildRoot(record.entity) else {
+            clearSelection(); return false
+        }
+        interactionState = .editing(.init(instanceID: instanceID, catalogAssetID: record.catalogAssetID))
+        return true
+    }
+
+    func beginPlacingAsset(catalogAssetID: String) {
+        let next = BuilderInteractionState.placingAsset(catalogAssetID: catalogAssetID)
+        if interactionState != next { interactionState = next }
+    }
+    func beginPlacingSavedWorld(id: UUID) {
+        let next = BuilderInteractionState.placingSavedWorld(worldID: id)
+        if interactionState != next { interactionState = next }
+    }
+    func finishPlacement() { if interactionState != .browse { interactionState = .browse } }
+    func clearSelection() { if interactionState.selection != nil { interactionState = .browse } }
+
+    @discardableResult
+    func removeSelected() -> Bool {
+        guard let id = interactionState.selection?.instanceID else { return false }
+        let entity = placedAssets.removeValue(forKey: id)?.entity
+        entity?.removeFromParent()
+        interactionState = .browse
+        return entity != nil
+    }
+
+    func remove(entity: Entity) {
+        if let item = placedAssets.first(where: { $0.value.entity === entity }) {
+            placedAssets.removeValue(forKey: item.key)
+            if interactionState.selection?.instanceID == item.key { interactionState = .browse }
+        }
+        entity.removeFromParent()
+    }
+    func resetActiveWorld() { activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); interactionState = .browse; setGridConfiguration(nil) }
+
+    func belongsToActiveBuildRoot(_ entity: Entity?) -> Bool {
+        guard let buildRoot, var current = entity else { return false }
+        while let parent = current.parent {
+            if parent === buildRoot { return true }
+            current = parent
+        }
+        return false
+    }
     func setGridConfiguration(_ configuration: SavedGridConfiguration?) {
         guard gridConfiguration != configuration else { return }
         gridConfiguration = configuration
@@ -32,9 +100,9 @@ final class WorldManager: ObservableObject {
     func savedWorlds() -> [SavedWorld] { store.loadAll() }
     func save(_ world: SavedWorld) { store.save(world) }
     func delete(_ world: SavedWorld) { store.delete(world) }
-    func loadWorld(_ world: SavedWorld) { pendingWorldForPlacement = world }
-    func finishPendingWorldPlacement() { pendingWorldForPlacement = nil }
-    func cancelPendingWorldPlacement() { pendingWorldForPlacement = nil }
+    func loadWorld(_ world: SavedWorld) { pendingWorldForPlacement = world; beginPlacingSavedWorld(id: world.id) }
+    func finishPendingWorldPlacement() { pendingWorldForPlacement = nil; finishPlacement() }
+    func cancelPendingWorldPlacement() { pendingWorldForPlacement = nil; finishPlacement() }
 }
 
 final class SavedWorldStore {

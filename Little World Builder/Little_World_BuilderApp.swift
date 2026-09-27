@@ -13,7 +13,6 @@ struct Little_World_BuilderApp: App {
     @StateObject var sessionSettings = SessionSettings()
     @StateObject var sceneManager = SceneManager()
     @StateObject var modelsViewModel = ModelsViewModel()
-    @StateObject var modelDeletionManager = ModelDeletionManager()
     @StateObject var worldManager = WorldManager()
     
     var body: some Scene {
@@ -23,7 +22,6 @@ struct Little_World_BuilderApp: App {
                 .environmentObject(sessionSettings)
                 .environmentObject(sceneManager)
                 .environmentObject(modelsViewModel)
-                .environmentObject(modelDeletionManager)
                 .environmentObject(worldManager)
         }
     }
