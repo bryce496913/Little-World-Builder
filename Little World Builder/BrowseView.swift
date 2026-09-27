@@ -87,6 +87,7 @@ struct ModelsByCategoryGrid: View {
 
 struct HorizontalGrid: View {
     @EnvironmentObject var placementSettings: PlacementSettings
+    @EnvironmentObject var worldManager: WorldManager
     @Binding var showBrowse: Bool
     @Binding var errorMessage: String?
     var title: String
@@ -104,6 +105,7 @@ struct HorizontalGrid: View {
                                 if completed {
                                     self.errorMessage = nil
                                     self.placementSettings.selectedModel = model
+                                    self.worldManager.beginPlacingAsset(catalogAssetID: model.id)
                                     self.showBrowse = false
                                 } else {
                                     self.errorMessage = "Could not load that model. Try another one."

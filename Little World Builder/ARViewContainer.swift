@@ -7,13 +7,12 @@ struct ARViewContainer: UIViewRepresentable {
     @EnvironmentObject var sessionSettings: SessionSettings
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var modelsViewModel: ModelsViewModel
-    @EnvironmentObject var modelDeletionManager: ModelDeletionManager
     @EnvironmentObject var worldManager: WorldManager
 
     func makeUIView(context: Context) -> CustomARView {
         sceneManager.clearCurrentScene()
         worldManager.resetActiveWorld()
-        let view = CustomARView(frame:.zero,sessionSettings:sessionSettings,modelDeletionManager:modelDeletionManager)
+        let view = CustomARView(frame:.zero,sessionSettings:sessionSettings,worldManager:worldManager)
         sceneManager.arView=view
         placementSettings.sceneObserver=view.scene.subscribe(to:SceneEvents.Update.self) { _ in self.updateScene(for:view) }
         return view
@@ -21,6 +20,13 @@ struct ARViewContainer: UIViewRepresentable {
     func updateUIView(_ uiView: CustomARView, context: Context) {}
 
     private func updateScene(for arView: CustomARView) {
+        if let model = placementSettings.selectedModel {
+            worldManager.beginPlacingAsset(catalogAssetID: model.id)
+        } else if let world = worldManager.pendingWorldForPlacement {
+            worldManager.beginPlacingSavedWorld(id: world.id)
+        } else if case .placingAsset = worldManager.interactionState {
+            worldManager.finishPlacement()
+        }
         // Consume the exact guide solution captured by the Place button before another frame can
         // publish a different raycast result.
         if let confirmed=placementSettings.modelConfirmedForPlacement.popLast() { place(confirmed,in:arView) }
@@ -107,7 +113,7 @@ struct ARViewContainer: UIViewRepresentable {
         root.addChild(clone); model.normalizePlacementSize(of:clone,relativeTo:root,at:placementPosition)
         configure(clone,in:arView); worldManager.register(clone,model:model)
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
-        placementSettings.resetPendingRotation(); arView.gridVisuals.hidePreview()
+        placementSettings.resetPendingRotation(); arView.gridVisuals.hidePreview(); worldManager.finishPlacement()
     }
 
     private func place(_ world: SavedWorld, at worldTransform: simd_float4x4, in arView: CustomARView) {
@@ -134,7 +140,7 @@ struct ARViewContainer: UIViewRepresentable {
         }
     }
 
-    private func configure(_ entity:ModelEntity,in arView:ARView) { entity.generateCollisionShapes(recursive:true); arView.installGestures([.translation,.rotation,.scale],for:entity) }
+    private func configure(_ entity:ModelEntity,in arView:ARView) { entity.generateCollisionShapes(recursive:true) }
 }
 
 final class SceneManager: ObservableObject {

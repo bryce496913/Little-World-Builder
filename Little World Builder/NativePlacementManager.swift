@@ -64,6 +64,30 @@ enum PlacementTargetPolicy {
     }
 }
 
+/// Marker for transient presentation entities that must never resolve to a placed object.
+struct NonSelectableComponent: Component {}
+
+enum PlacedObjectResolver {
+    /// Walks from rendered child geometry to its registered root and verifies active-world ownership.
+    static func registeredRoot(from hitEntity: Entity, buildRoot: Entity?) -> (entity: Entity, component: LocalModelComponent)? {
+        guard let buildRoot else { return nil }
+        var current: Entity? = hitEntity
+        while let entity = current, entity !== buildRoot {
+            if entity.components[NonSelectableComponent.self] != nil { return nil }
+            if let component = entity.components[LocalModelComponent.self] as? LocalModelComponent {
+                var ancestor = entity.parent
+                while let candidate = ancestor {
+                    if candidate === buildRoot { return (entity, component) }
+                    ancestor = candidate.parent
+                }
+                return nil
+            }
+            current = entity.parent
+        }
+        return nil
+    }
+}
+
 private extension SIMD3 where Scalar == Float {
     var allFinite: Bool { x.isFinite && y.isFinite && z.isFinite }
 }

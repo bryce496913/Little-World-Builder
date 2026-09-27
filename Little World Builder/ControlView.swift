@@ -151,10 +151,14 @@ struct ControlButton: View {
 
 struct MostRecentlyPlacedButton: View {
     @EnvironmentObject var placementSettings: PlacementSettings
+    @EnvironmentObject var worldManager: WorldManager
 
     var body: some View {
         Button(action: {
             self.placementSettings.selectedModel = self.placementSettings.recentlyPlaced.last
+            if let model = self.placementSettings.selectedModel {
+                self.worldManager.beginPlacingAsset(catalogAssetID: model.id)
+            }
         }) {
             VStack(spacing: 4) {
                 if let model = self.placementSettings.recentlyPlaced.last {
