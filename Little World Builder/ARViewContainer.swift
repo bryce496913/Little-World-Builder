@@ -21,6 +21,9 @@ struct ARViewContainer: UIViewRepresentable {
     func updateUIView(_ uiView: CustomARView, context: Context) {}
 
     private func updateScene(for arView: CustomARView) {
+        // Consume the exact guide solution captured by the Place button before another frame can
+        // publish a different raycast result.
+        if let confirmed=placementSettings.modelConfirmedForPlacement.popLast() { place(confirmed,in:arView) }
         worldManager.setGridConfiguration(SavedGridConfiguration(cellSizeMeters: placementSettings.gridSettings.cellSizeMeters,
                                                                   rotationStepDegrees: placementSettings.gridSettings.rotationStepDegrees,
                                                                   wasEnabled: placementSettings.placementMode == .grid))
@@ -37,22 +40,21 @@ struct ARViewContainer: UIViewRepresentable {
         if sceneManager.shouldPlacePendingWorld, let world=worldManager.pendingWorldForPlacement, let matrix=arView.nativePlacementManager.latestPlacementTransform {
             sceneManager.shouldPlacePendingWorld=false; place(world,at:matrix,in:arView)
         }
-        if let confirmed=placementSettings.modelConfirmedForPlacement.popLast() { place(confirmed.model,rawWorldTransform:confirmed.anchor?.transform,resolvedTransform:confirmed.modelTransform,in:arView) }
         if sceneManager.shouldSaveSceneToFilesystem { ScenePersistenceHelper.saveWorld(using:worldManager); sceneManager.shouldSaveSceneToFilesystem=false }
     }
 
     private func updateGridPreview(in arView: CustomARView) {
         guard let model = placementSettings.selectedModel,
-              let rawWorld = arView.nativePlacementManager.latestPlacementTransform else {
-            placementSettings.latestResolvedTransform = nil
-            placementSettings.latestRawWorldTransform = nil
+              let target = arView.nativePlacementManager.placementTarget else {
+            placementSettings.publish(nil)
             arView.gridVisuals.hidePreview()
             if placementSettings.placementMode == .free { arView.gridVisuals.hideGrid() }
             return
         }
+        let rawWorld = target.worldTransform
         let rootWorld = worldManager.buildRoot?.transformMatrix(relativeTo: nil) ?? rawWorld
         guard let localMatrix = WorldTransformMath.localMatrix(world: rawWorld, rootWorld: rootWorld) else {
-            placementSettings.latestResolvedTransform = nil; arView.gridVisuals.hidePreview(); return
+            placementSettings.publish(nil); arView.gridVisuals.hidePreview(); return
         }
         let rawLocal = Transform(matrix: localMatrix)
         let result: GridSnapResult
@@ -67,16 +69,28 @@ struct ARViewContainer: UIViewRepresentable {
             result = GridSnapResult(transform: rawLocal, effectiveFootprint: model.gridFootprint, gridCoordinateX: 0, gridCoordinateZ: 0)
             arView.gridVisuals.hideGrid()
         }
-        placementSettings.latestResolvedTransform = result.transform
-        placementSettings.latestRawWorldTransform = rawWorld
+        let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
+                                                rawWorldTransform: rawWorld, rootLocalTransform: result.transform,
+                                                targetSource: target.source, supportingObjectID: target.supportingObjectID,
+                                                capturedSurfaceHeight: rawLocal.translation.y,
+                                                gridCoordinateX: placementSettings.placementMode == .grid ? result.gridCoordinateX : nil,
+                                                gridCoordinateZ: placementSettings.placementMode == .grid ? result.gridCoordinateZ : nil,
+                                                isValid: true, capturedAt: Date())
+        placementSettings.publish(solution)
         arView.gridVisuals.showPreview(result: result, settings: placementSettings.gridSettings,
                                        root: worldManager.buildRoot, rootWorldTransform: rootWorld, in: arView)
         placementSettings.placementStatusMessage = placementSettings.placementMode == .grid && model.snapBehavior == .free ? "Free placement asset" : "Ready to place"
     }
 
-    private func place(_ model: Model, rawWorldTransform: simd_float4x4?, resolvedTransform: Transform?, in arView: CustomARView) {
-        guard let source=model.modelEntity, let requestedWorld=rawWorldTransform,
-              let resolved = resolvedTransform else { print("Placement Error: model or surface unavailable for \(model.id)"); return }
+    private func place(_ request: ConfirmedPlacement, in arView: CustomARView) {
+        let model = request.model
+        let solution = request.solution
+        guard solution.canConfirm(assetID: model.id),
+              placementSettings.pendingPlacementSolution?.id == solution.id,
+              placementSettings.selectedModel?.id == model.id,
+              let source=model.modelEntity else { print("Placement Error: stale or mismatched placement for \(model.id)"); return }
+        let requestedWorld = solution.rawWorldTransform
+        let resolved = solution.rootLocalTransform
         let root: Entity
         if let existing=worldManager.buildRoot { root=existing }
         else {

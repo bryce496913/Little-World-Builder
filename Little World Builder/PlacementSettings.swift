@@ -9,10 +9,29 @@ import Combine
 import ARKit
 import RealityKit
 
-struct ModelAnchor {
-    var model: Model
-    var anchor: ARAnchor?
-    var modelTransform: Transform? = nil
+struct PendingPlacementSolution {
+    static let maximumAge: TimeInterval = 1
+
+    let id: UUID
+    let selectedAssetID: String
+    let rawWorldTransform: simd_float4x4
+    let rootLocalTransform: Transform
+    let targetSource: PlacementTargetSource
+    let supportingObjectID: UUID?
+    let capturedSurfaceHeight: Float
+    let gridCoordinateX: Int?
+    let gridCoordinateZ: Int?
+    let isValid: Bool
+    let capturedAt: Date
+
+    func canConfirm(assetID: String, now: Date = Date()) -> Bool {
+        isValid && selectedAssetID == assetID && now.timeIntervalSince(capturedAt) >= 0 && now.timeIntervalSince(capturedAt) <= Self.maximumAge
+    }
+}
+
+struct ConfirmedPlacement {
+    let model: Model
+    let solution: PendingPlacementSolution
 }
 
 final class PlacementSettings: ObservableObject {
@@ -21,8 +40,7 @@ final class PlacementSettings: ObservableObject {
     @Published var placementMode: PlacementMode = .free
     @Published var gridSettings: GridSettings = .default
     @Published private(set) var requestedQuarterTurns: Int = 0
-    var latestResolvedTransform: Transform?
-    var latestRawWorldTransform: simd_float4x4?
+    private(set) var pendingPlacementSolution: PendingPlacementSolution?
 
     // When the user selects a model in BrowseView, this property is set.
     @Published var selectedModel: Model? {
@@ -38,7 +56,7 @@ final class PlacementSettings: ObservableObject {
     @Published var recentlyPlaced: [Model] = []
 
     // This property will keep track of all the content that has been confirmed for placement in the scene.
-    var modelConfirmedForPlacement: [ModelAnchor] = []
+    var modelConfirmedForPlacement: [ConfirmedPlacement] = []
 
     // This property retains the cancellable object for our SceneEvents.Update subscriber.
     var sceneObserver: Cancellable?
@@ -55,8 +73,15 @@ final class PlacementSettings: ObservableObject {
 
     func resetPendingRotation() {
         requestedQuarterTurns = 0
-        latestResolvedTransform = nil
-        latestRawWorldTransform = nil
+        pendingPlacementSolution = nil
+    }
+
+    func publish(_ solution: PendingPlacementSolution?) { pendingPlacementSolution = solution }
+
+    func capturePlacement(for model: Model, now: Date = Date()) -> ConfirmedPlacement? {
+        guard let solution = pendingPlacementSolution,
+              solution.canConfirm(assetID: model.id, now: now) else { return nil }
+        return ConfirmedPlacement(model: model, solution: solution)
     }
 }
 
@@ -113,7 +138,9 @@ enum GridSnapResolver {
         let x = snap(rawLocalTransform.translation.x, dimension: effective.width)
         let z = snap(rawLocalTransform.translation.z, dimension: effective.depth)
         var result = rawLocalTransform
-        result.translation = [x.0, snapBehavior == .floating ? rawLocalTransform.translation.y : 0, z.0]
+        // Target height is already expressed in build-root-local space. Ground and water use the
+        // selected support height just like floating assets; only X/Z and yaw are grid-resolved.
+        result.translation = [x.0, rawLocalTransform.translation.y, z.0]
         let yaw = Float(turns) * settings.rotationStepDegrees * .pi / 180
         result.rotation = simd_quatf(angle: yaw, axis: [0, 1, 0])
         return result.translation.allFinite ? GridSnapResult(transform: result, effectiveFootprint: effective, gridCoordinateX: x.1, gridCoordinateZ: z.1) : nil

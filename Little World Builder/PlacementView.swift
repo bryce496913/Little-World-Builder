@@ -1,5 +1,4 @@
 import SwiftUI
-import ARKit
 
 struct PlacementView: View {
     @EnvironmentObject var placementSettings: PlacementSettings
@@ -65,9 +64,12 @@ struct PlacementView: View {
                         return
                     }
                     if let selectedModel = self.placementSettings.selectedModel {
+                        guard let captured = self.placementSettings.capturePlacement(for: selectedModel) else {
+                            print("Placement Error: pending placement is stale or belongs to another asset.")
+                            return
+                        }
                         print("Placement: confirmed Place for \(selectedModel.name) at \(selectedModel.assetURL.path).")
-                        let capturedSurface = self.placementSettings.latestRawWorldTransform.map(ARAnchor.init(transform:))
-                        self.placementSettings.modelConfirmedForPlacement.append(ModelAnchor(model: selectedModel, anchor: capturedSurface, modelTransform: self.placementSettings.latestResolvedTransform))
+                        self.placementSettings.modelConfirmedForPlacement.append(captured)
                     } else if let pendingWorld = self.worldManager.pendingWorldForPlacement {
                         print("World: confirmed placement for saved world \(pendingWorld.name).")
                         self.sceneManager.shouldPlacePendingWorld = true

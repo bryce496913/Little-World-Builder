@@ -155,7 +155,67 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(result.effectiveFootprint, GridFootprint(width: 3, depth: 2))
         XCTAssertEqual(result.transform.translation.x, 0.1, accuracy: 0.0001)
         XCTAssertEqual(result.transform.translation.z, 0.25, accuracy: 0.0001)
-        XCTAssertEqual(result.transform.translation.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.transform.translation.y, 0.7, accuracy: 0.0001)
+    }
+
+    func testGroundAndWaterPreserveSupportHeightWhileSnappingXZ() throws {
+        let raw = Transform(scale: .one, rotation: simd_quatf(angle: 0.2, axis: [0, 1, 0]), translation: [0.14, 1.25, -0.16])
+        for behavior in [SnapBehavior.ground, .water] {
+            let result = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: raw, footprint: .init(width: 1, depth: 1), snapBehavior: behavior, settings: .default, requestedQuarterTurns: 0))
+            XCTAssertEqual(result.transform.translation.x, 0.1, accuracy: 0.0001)
+            XCTAssertEqual(result.transform.translation.y, 1.25, accuracy: 0.0001)
+            XCTAssertEqual(result.transform.translation.z, -0.2, accuracy: 0.0001)
+        }
+    }
+
+    func testObjectAndPlaneWorldHeightsConvertToRootLocalY() throws {
+        var root = matrix_identity_float4x4
+        root.columns.3 = SIMD4(5, 2, -3, 1)
+        for (source, worldY, expectedY) in [(PlacementTargetSource.placedObject, Float(3.4), Float(1.4)), (.arPlane, Float(2), Float(0))] {
+            var world = matrix_identity_float4x4
+            world.columns.3 = SIMD4(7, worldY, 1, 1)
+            let local = try XCTUnwrap(WorldTransformMath.localMatrix(world: world, rootWorld: root))
+            XCTAssertEqual(local.columns.3.y, expectedY, accuracy: 0.0001, "\(source)")
+        }
+    }
+
+    func testRotatedBuildRootConversionUsesInverseRootTransform() throws {
+        var root = simd_float4x4(simd_quatf(angle: .pi / 2, axis: [0, 1, 0]))
+        root.columns.3 = SIMD4(10, 1, -4, 1)
+        var expectedLocal = matrix_identity_float4x4
+        expectedLocal.columns.3 = SIMD4(2, 0.75, -3, 1)
+        let local = try XCTUnwrap(WorldTransformMath.localMatrix(world: root * expectedLocal, rootWorld: root))
+        XCTAssertEqual(local.columns.3.x, 2, accuracy: 0.0001)
+        XCTAssertEqual(local.columns.3.y, 0.75, accuracy: 0.0001)
+        XCTAssertEqual(local.columns.3.z, -3, accuracy: 0.0001)
+    }
+
+    func testPendingSolutionRejectsStaleAndMismatchedAssets() {
+        let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: "tree", rawWorldTransform: matrix_identity_float4x4,
+                                                rootLocalTransform: Transform(translation: [1, 2, 3]), targetSource: .placedObject,
+                                                supportingObjectID: UUID(), capturedSurfaceHeight: 2,
+                                                gridCoordinateX: 10, gridCoordinateZ: 30, isValid: true,
+                                                capturedAt: Date(timeIntervalSinceReferenceDate: 100))
+        XCTAssertTrue(solution.canConfirm(assetID: "tree", now: Date(timeIntervalSinceReferenceDate: 100.5)))
+        XCTAssertFalse(solution.canConfirm(assetID: "rock", now: Date(timeIntervalSinceReferenceDate: 100.5)))
+        XCTAssertFalse(solution.canConfirm(assetID: "tree", now: Date(timeIntervalSinceReferenceDate: 102)))
+        XCTAssertEqual(solution.rootLocalTransform.translation, [1, 2, 3])
+    }
+
+    func testRestoreKeepsSavedHeightAndPlacedAssetsRemainDirectRootChildren() {
+        let root = Entity()
+        let island = ModelEntity()
+        let tree = ModelEntity()
+        island.transform = Transform(translation: [0, 0, 0])
+        tree.transform = CodableTransform(position: .init(x: 0.4, y: 1.75, z: -0.2),
+                                           rotation: .identity, scale: .one).realityKitTransform
+        root.addChild(island)
+        root.addChild(tree)
+
+        XCTAssertTrue(island.parent === root)
+        XCTAssertTrue(tree.parent === root)
+        XCTAssertFalse(tree.parent === island)
+        XCTAssertEqual(tree.transform.translation.y, 1.75, accuracy: 0.0001)
     }
 
     func testFloatingPreservesHeightAndFreeBypassesGrid() throws {
