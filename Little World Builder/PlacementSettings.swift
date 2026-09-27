@@ -118,6 +118,28 @@ struct GridSnapResult {
     let gridCoordinateZ: Int
 }
 
+enum GuideGeometry {
+    static func gridMarkerDimensions(footprint: GridFootprint, cellSizeMeters: Float) -> SIMD2<Float>? {
+        guard footprint.isValid, cellSizeMeters.isFinite, cellSizeMeters > 0 else { return nil }
+        return [Float(footprint.width) * cellSizeMeters, Float(footprint.depth) * cellSizeMeters]
+    }
+
+    static func validVisualDimensions(_ dimensions: SIMD2<Float>) -> Bool {
+        dimensions.x.isFinite && dimensions.y.isFinite && dimensions.x > 0 && dimensions.y > 0
+    }
+
+    static func scaledVisualDimensions(_ dimensions: SIMD2<Float>, scale: SIMD3<Float>) -> SIMD2<Float>? {
+        let result = SIMD2<Float>(dimensions.x * abs(scale.x), dimensions.y * abs(scale.z))
+        return validVisualDimensions(result) ? result : nil
+    }
+
+    /// Dimensions presented along the grid axes after a quarter-turn yaw. Rendering keeps the
+    /// oriented rectangle at its true size and rotates its parent rather than inflating an AABB.
+    static func presentedDimensions(_ dimensions: SIMD2<Float>, quarterTurns: Int) -> SIMD2<Float> {
+        abs(quarterTurns).isMultiple(of: 2) ? dimensions : [dimensions.y, dimensions.x]
+    }
+}
+
 enum GridSnapResolver {
     /// Snaps on the build-root-local X/Z plane. Even footprints use a half-cell phase.
     static func resolve(rawLocalTransform: Transform, footprint: GridFootprint, snapBehavior: SnapBehavior,

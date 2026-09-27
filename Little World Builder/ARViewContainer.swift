@@ -78,6 +78,7 @@ struct ARViewContainer: UIViewRepresentable {
                                                 isValid: true, capturedAt: Date())
         placementSettings.publish(solution)
         arView.gridVisuals.showPreview(result: result, settings: placementSettings.gridSettings,
+                                       visualBounds: model.normalizedHorizontalVisualBounds(), showsFootprint: placementSettings.placementMode == .grid,
                                        root: worldManager.buildRoot, rootWorldTransform: rootWorld, in: arView)
         placementSettings.placementStatusMessage = placementSettings.placementMode == .grid && model.snapBehavior == .free ? "Free placement asset" : "Ready to place"
     }
