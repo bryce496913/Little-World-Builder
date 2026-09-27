@@ -169,13 +169,17 @@ final class PlacementIndicatorEntity: Entity, HasModel {
 /// Ephemeral rendering only: these entities have no collisions and are never registered as world assets.
 final class GridVisualController {
     private let grid = Entity()
-    private let preview = ModelEntity()
+    private let footprintMarker = ModelEntity()
+    private let assetOutline = Entity()
     private let temporaryAnchor = AnchorEntity(world: SIMD3<Float>(0, 0, 0))
     private var renderedSettings: GridSettings?
+    private var renderedFootprintDimensions: SIMD2<Float>?
+    private var renderedOutlineDimensions: SIMD2<Float>?
 
     init() {
         grid.name = "build-grid-overlay"
-        preview.name = "grid-footprint-preview"
+        footprintMarker.name = "temporary-grid-footprint-marker"
+        assetOutline.name = "temporary-asset-size-outline"
         temporaryAnchor.name = "temporary-grid-preview-anchor"
     }
 
@@ -194,26 +198,53 @@ final class GridVisualController {
         grid.isEnabled = true
     }
 
-    func showPreview(result: GridSnapResult, settings: GridSettings, root: Entity?, rootWorldTransform: simd_float4x4, in arView: ARView) {
-        let width = Float(result.effectiveFootprint.width) * settings.cellSizeMeters
-        let depth = Float(result.effectiveFootprint.depth) * settings.cellSizeMeters
-        preview.model = ModelComponent(mesh: .generatePlane(width: width, depth: depth), materials: [UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.32))])
+    func showPreview(result: GridSnapResult, settings: GridSettings, visualBounds: SIMD2<Float>?, showsFootprint: Bool,
+                     root: Entity?, rootWorldTransform: simd_float4x4, in arView: ARView) {
+        if showsFootprint, let dimensions = GuideGeometry.gridMarkerDimensions(footprint: result.effectiveFootprint, cellSizeMeters: settings.cellSizeMeters) {
+            if renderedFootprintDimensions != dimensions {
+                footprintMarker.model = ModelComponent(mesh: .generatePlane(width: dimensions.x, depth: dimensions.y), materials: [UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.24))])
+                renderedFootprintDimensions = dimensions
+            }
+            footprintMarker.isEnabled = true
+        } else { footprintMarker.isEnabled = false }
+        rebuildAssetOutline(dimensions: visualBounds)
+        let previewEntities = [footprintMarker, assetOutline]
         if let root {
-            if preview.parent !== root { preview.removeFromParent(); root.addChild(preview) }
-            preview.transform = result.transform
-            preview.position.y += 0.002
+            for entity in previewEntities where entity.parent !== root { entity.removeFromParent(); root.addChild(entity) }
         } else {
             if temporaryAnchor.scene == nil { arView.scene.addAnchor(temporaryAnchor) }
             temporaryAnchor.transform.matrix = rootWorldTransform
-            if preview.parent !== temporaryAnchor { preview.removeFromParent(); temporaryAnchor.addChild(preview) }
-            preview.transform = result.transform
-            preview.position.y += 0.002
+            for entity in previewEntities where entity.parent !== temporaryAnchor { entity.removeFromParent(); temporaryAnchor.addChild(entity) }
         }
-        preview.isEnabled = true
+        footprintMarker.transform = result.transform
+        footprintMarker.scale = .one
+        footprintMarker.position.y += 0.002
+        assetOutline.transform = result.transform
+        assetOutline.position.y += 0.004
     }
 
     func hideGrid() { grid.isEnabled = false; temporaryAnchor.removeFromParent() }
-    func hidePreview() { preview.isEnabled = false }
+    func hidePreview() { footprintMarker.isEnabled = false; assetOutline.isEnabled = false }
+
+    private func rebuildAssetOutline(dimensions: SIMD2<Float>?) {
+        if renderedOutlineDimensions == dimensions { assetOutline.isEnabled = dimensions != nil; return }
+        for child in assetOutline.children { child.removeFromParent() }
+        guard let dimensions, GuideGeometry.validVisualDimensions(dimensions) else {
+            renderedOutlineDimensions = nil; assetOutline.isEnabled = false; return
+        }
+        let thickness = max(min(dimensions.x, dimensions.y) * 0.012, 0.0012)
+        let material = UnlitMaterial(color: UIColor.systemYellow.withAlphaComponent(0.82))
+        let horizontal = MeshResource.generateBox(size: [dimensions.x, 0.0008, thickness])
+        let vertical = MeshResource.generateBox(size: [thickness, 0.0008, dimensions.y])
+        for z in [-dimensions.y / 2, dimensions.y / 2] {
+            let edge = ModelEntity(mesh: horizontal, materials: [material]); edge.position.z = z; assetOutline.addChild(edge)
+        }
+        for x in [-dimensions.x / 2, dimensions.x / 2] {
+            let edge = ModelEntity(mesh: vertical, materials: [material]); edge.position.x = x; assetOutline.addChild(edge)
+        }
+        renderedOutlineDimensions = dimensions
+        assetOutline.isEnabled = true
+    }
 
     private func rebuildGrid(settings: GridSettings) {
         for child in grid.children { child.removeFromParent() }

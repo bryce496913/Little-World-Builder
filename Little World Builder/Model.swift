@@ -23,6 +23,7 @@ final class Model: ObservableObject, Identifiable {
     let defaultScale: Float
     let rotationXDegrees: Float
     private var cancellable: AnyCancellable?
+    private var cachedNormalizedHorizontalBounds: SIMD2<Float>?
 
     init(entry: AssetManifestEntry, assetURL: URL, bundle: Bundle = .main) {
         id = entry.id; name = entry.displayName; category = entry.category
@@ -38,7 +39,9 @@ final class Model: ObservableObject, Identifiable {
         cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL).sink(receiveCompletion: {
             if case .failure(let error) = $0 { print("Model Error: \(self.assetFileName): \(error.localizedDescription)"); handler(false, error) }
         }, receiveValue: { entity in
-            self.modelEntity = entity; handler(true, nil)
+            self.modelEntity = entity
+            self.cachedNormalizedHorizontalBounds = nil
+            handler(true, nil)
         })
     }
 
@@ -63,6 +66,27 @@ final class Model: ObservableObject, Identifiable {
         bounds = entity.visualBounds(relativeTo: parent)
         let bottomCenter = SIMD3<Float>(bounds.center.x, bounds.min.y, bounds.center.z)
         entity.position += placementPosition - bottomCenter
+    }
+
+    /// Measures the same catalog-rotated and normalized model used by placement. The result is
+    /// cached in model-local axes, so pending yaw and scale can be applied without cloning per frame.
+    func normalizedHorizontalVisualBounds() -> SIMD2<Float>? {
+        if let cachedNormalizedHorizontalBounds { return cachedNormalizedHorizontalBounds }
+        guard let source = modelEntity else { return nil }
+        let measurementRoot = Entity()
+        let prepared = source.clone(recursive: true)
+        prepared.transform = .identity
+        applyCatalogTransform(to: prepared)
+        measurementRoot.addChild(prepared)
+        normalizePlacementSize(of: prepared, relativeTo: measurementRoot, at: .zero)
+        let bounds = prepared.visualBounds(relativeTo: measurementRoot)
+        let dimensions = SIMD2<Float>(bounds.extents.x, bounds.extents.z)
+        guard GuideGeometry.validVisualDimensions(dimensions) else {
+            print("Placement Warning: \(assetFileName) has invalid normalized horizontal bounds; hiding its visual outline.")
+            return nil
+        }
+        cachedNormalizedHorizontalBounds = dimensions
+        return dimensions
     }
 
     static func loadThumbnail(fileName: String, assetID: String, bundle: Bundle = .main) -> UIImage {

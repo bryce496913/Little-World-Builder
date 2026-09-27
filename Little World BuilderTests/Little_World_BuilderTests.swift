@@ -364,6 +364,86 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(Model(entry:island,assetURL:URL(fileURLWithPath:"floating_island.usdz")).placementSize,0.54,accuracy:0.001)
     }
 
+    func testGuideGridMarkerUsesConfiguredCellSize() throws {
+        let dimensions = try XCTUnwrap(GuideGeometry.gridMarkerDimensions(footprint: .init(width: 2, depth: 3), cellSizeMeters: 0.125))
+        XCTAssertEqual(dimensions.x, 0.25, accuracy: 0.0001)
+        XCTAssertEqual(dimensions.y, 0.375, accuracy: 0.0001)
+    }
+
+    func testThreeByThreeGuideMarkerIsThirtyCentimetersAtDefaultGridSize() throws {
+        let dimensions = try XCTUnwrap(GuideGeometry.gridMarkerDimensions(footprint: .init(width: 3, depth: 3), cellSizeMeters: GridSettings.default.cellSizeMeters))
+        XCTAssertEqual(dimensions, SIMD2<Float>(0.30, 0.30))
+    }
+
+    func testNormalizedVisualOutlineDoesNotUseGridDimensionsAndPreservesAspectRatio() throws {
+        let entry = AssetManifestEntry(id: "outline", fileName: "outline.usdz", displayName: "Outline", category: .decor,
+                                       thumbnailFileName: "outline.png", defaultScale: 1, rotationXDegrees: 0,
+                                       placementRole: .decor, gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+        model.modelEntity = ModelEntity(mesh: .generateBox(size: [4, 2, 1]))
+        let bounds = try XCTUnwrap(model.normalizedHorizontalVisualBounds())
+        XCTAssertEqual(bounds.x, model.placementSize, accuracy: 0.0001)
+        XCTAssertEqual(bounds.x / bounds.y, 4, accuracy: 0.001)
+        XCTAssertNotEqual(bounds, SIMD2<Float>(0.1, 0.1))
+    }
+
+    func testCatalogRotationIsAppliedBeforeHorizontalBoundsMeasurement() throws {
+        let entry = AssetManifestEntry(id: "rotated", fileName: "rotated.usdz", displayName: "Rotated", category: .decor,
+                                       thumbnailFileName: "rotated.png", defaultScale: 1, rotationXDegrees: 90,
+                                       placementRole: .decor, gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+        model.modelEntity = ModelEntity(mesh: .generateBox(size: [4, 2, 1]))
+        let bounds = try XCTUnwrap(model.normalizedHorizontalVisualBounds())
+        XCTAssertEqual(bounds.x / bounds.y, 2, accuracy: 0.001)
+    }
+
+    func testGuideYawSwapsRectangularPresentationAtNinetyDegrees() {
+        let dimensions = SIMD2<Float>(0.36, 0.12)
+        XCTAssertEqual(GuideGeometry.presentedDimensions(dimensions, quarterTurns: 0), dimensions)
+        XCTAssertEqual(GuideGeometry.presentedDimensions(dimensions, quarterTurns: 1), SIMD2<Float>(0.12, 0.36))
+        XCTAssertEqual(GuideGeometry.presentedDimensions(dimensions, quarterTurns: 2), dimensions)
+    }
+
+    func testGuideScaleUpdatesOutlineWithoutChangingPlacementTransform() throws {
+        let transform = Transform(scale: [2, 1, 0.5], rotation: simd_quatf(angle: .pi / 2, axis: [0, 1, 0]), translation: [1, 2, 3])
+        let original = transform
+        let scaled = try XCTUnwrap(GuideGeometry.scaledVisualDimensions([0.3, 0.2], scale: transform.scale))
+        XCTAssertEqual(scaled, SIMD2<Float>(0.6, 0.1))
+        XCTAssertEqual(transform.translation, original.translation)
+        XCTAssertEqual(transform.rotation.vector, original.rotation.vector)
+        XCTAssertEqual(transform.scale, original.scale)
+    }
+
+    func testInvalidGuideBoundsFallBackSafely() {
+        XCTAssertFalse(GuideGeometry.validVisualDimensions([0, 1]))
+        XCTAssertFalse(GuideGeometry.validVisualDimensions([.nan, 1]))
+        XCTAssertFalse(GuideGeometry.validVisualDimensions([1, .infinity]))
+        XCTAssertNil(GuideGeometry.scaledVisualDimensions([1, 1], scale: [.infinity, 1, 1]))
+    }
+
+    func testNormalizedBoundsCacheDoesNotCrossContaminateAssets() throws {
+        func makeModel(id: String, width: Float) -> Model {
+            let entry = AssetManifestEntry(id: id, fileName: "\(id).usdz", displayName: id, category: .decor,
+                                           thumbnailFileName: "\(id).png", defaultScale: 1, rotationXDegrees: 0,
+                                           placementRole: .decor, gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+            let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+            model.modelEntity = ModelEntity(mesh: .generateBox(size: [width, 1, 1]))
+            return model
+        }
+        let wide = try XCTUnwrap(makeModel(id: "wide", width: 4).normalizedHorizontalVisualBounds())
+        let square = try XCTUnwrap(makeModel(id: "square", width: 1).normalizedHorizontalVisualBounds())
+        XCTAssertEqual(wide.x / wide.y, 4, accuracy: 0.001)
+        XCTAssertEqual(square.x / square.y, 1, accuracy: 0.001)
+    }
+
+    func testTemporaryGuideEntitiesAreExcludedFromPersistence() throws {
+        let manager = WorldManager()
+        let root = Entity(); manager.activate(anchor: AnchorEntity(), buildRoot: root)
+        let temporaryGuide = Entity(); temporaryGuide.name = "temporary-asset-size-outline"; root.addChild(temporaryGuide)
+        let world = try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: manager))
+        XCTAssertTrue(world.placedAssets.isEmpty)
+    }
+
     func testDefaultScaleIsExposedAsFinalSizeMultiplier() throws {
         let entry = try XCTUnwrap(try manifest().first { $0.id == "floating_island" })
         let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
