@@ -2,13 +2,78 @@ import ARKit
 import RealityKit
 import UIKit
 
+enum PlacementTargetSource: Equatable {
+    case placedObject
+    case arPlane
+}
+
+struct PlacementTarget {
+    let worldPosition: SIMD3<Float>
+    let worldTransform: simd_float4x4
+    let surfaceNormal: SIMD3<Float>
+    let source: PlacementTargetSource
+    let supportingObjectID: UUID?
+}
+
+enum PlacementQueryPurpose: Equatable {
+    case newAsset
+    case savedWorldRoot
+}
+
+/// Pure policy shared by RealityKit hit handling and unit tests.
+enum PlacementTargetPolicy {
+    /// Surfaces within about 48 degrees of world up are considered useful horizontal supports.
+    static let minimumUpwardNormalDot: Float = 0.67
+
+    struct ObjectCandidate {
+        let position: SIMD3<Float>
+        let normal: SIMD3<Float>
+        let worldTransform: simd_float4x4
+        let instanceID: UUID
+        let category: ModelCategory?
+        let placementRole: PlacementRole?
+    }
+
+    static func isSupportCapable(category: ModelCategory?, placementRole: PlacementRole?) -> Bool {
+        // The existing manifest identifies islands consistently as land/base. Other roles are
+        // intentionally excluded until the manifest can explicitly mark support-capable structures.
+        category == .land && placementRole == .base
+    }
+
+    static func objectTarget(from candidate: ObjectCandidate?) -> PlacementTarget? {
+        guard let candidate,
+              isSupportCapable(category: candidate.category, placementRole: candidate.placementRole),
+              candidate.position.allFinite,
+              candidate.normal.allFinite else { return nil }
+        let length = simd_length(candidate.normal)
+        guard length.isFinite, length > 0 else { return nil }
+        let normal = candidate.normal / length
+        guard simd_dot(normal, SIMD3<Float>(0, 1, 0)) >= minimumUpwardNormalDot else { return nil }
+        return PlacementTarget(worldPosition: candidate.position,
+                               worldTransform: candidate.worldTransform,
+                               surfaceNormal: normal,
+                               source: .placedObject,
+                               supportingObjectID: candidate.instanceID)
+    }
+
+    static func select(purpose: PlacementQueryPurpose = .newAsset,
+                       objectCandidate: ObjectCandidate?,
+                       planeTarget: PlacementTarget?) -> PlacementTarget? {
+        guard purpose == .newAsset else { return planeTarget }
+        return objectTarget(from: objectCandidate) ?? planeTarget
+    }
+}
+
+private extension SIMD3 where Scalar == Float {
+    var allFinite: Bool { x.isFinite && y.isFinite && z.isFinite }
+}
+
 final class NativePlacementManager {
     private let indicator = PlacementIndicatorEntity()
-    private(set) var latestPlacementTransform: simd_float4x4?
+    private(set) var placementTarget: PlacementTarget?
 
-    var isPlacementAvailable: Bool {
-        latestPlacementTransform != nil
-    }
+    var latestPlacementTransform: simd_float4x4? { placementTarget?.worldTransform }
+    var isPlacementAvailable: Bool { placementTarget != nil }
 
     func install(in arView: ARView) {
         let anchor = AnchorEntity(world: SIMD3<Float>(0, 0, 0))
@@ -18,24 +83,76 @@ final class NativePlacementManager {
         indicator.isEnabled = false
     }
 
-    func update(in arView: ARView, isPlacementActive: Bool, alignment: ARRaycastQuery.TargetAlignment) {
-        guard isPlacementActive else {
-            latestPlacementTransform = nil
-            indicator.isEnabled = false
-            return
-        }
+    func update(in arView: ARView,
+                isPlacementActive: Bool,
+                alignment: ARRaycastQuery.TargetAlignment,
+                purpose: PlacementQueryPurpose,
+                models: [Model]) {
+        guard isPlacementActive else { clearTarget(); return }
 
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
-        guard let query = arView.makeRaycastQuery(from: center, allowing: .estimatedPlane, alignment: alignment),
-              let result = arView.session.raycast(query).first else {
-            latestPlacementTransform = nil
-            indicator.isEnabled = false
-            return
-        }
+        let objectCandidate = purpose == .newAsset
+            ? placedObjectCandidate(at: center, in: arView, models: models)
+            : nil
+        let planeTarget = realWorldPlaneTarget(at: center, in: arView, alignment: alignment)
+        placementTarget = PlacementTargetPolicy.select(purpose: purpose,
+                                                       objectCandidate: objectCandidate,
+                                                       planeTarget: planeTarget)
 
-        latestPlacementTransform = result.worldTransform
-        indicator.transform.matrix = result.worldTransform
+        guard let placementTarget else { clearTarget(); return }
+        indicator.transform.matrix = placementTarget.worldTransform
         indicator.isEnabled = true
+    }
+
+    /// Resolves a mesh hit to the one registered placed-object root, never to the child itself.
+    static func registeredRoot(from hitEntity: Entity) -> (entity: Entity, component: LocalModelComponent)? {
+        var current: Entity? = hitEntity
+        while let entity = current {
+            if let component = entity.components[LocalModelComponent.self] as? LocalModelComponent {
+                return (entity, component)
+            }
+            current = entity.parent
+        }
+        return nil
+    }
+
+    private func placedObjectCandidate(at point: CGPoint, in arView: ARView, models: [Model]) -> PlacementTargetPolicy.ObjectCandidate? {
+        guard let hit = arView.hitTest(point, query: .nearest).first,
+              let resolved = Self.registeredRoot(from: hit.entity),
+              resolved.entity.isEnabled,
+              let model = models.first(where: { $0.id == resolved.component.catalogAssetID }) else { return nil }
+
+        let position = hit.position
+        var transform = matrix_identity_float4x4
+        transform.columns.3 = SIMD4<Float>(position, 1)
+        return .init(position: position,
+                     normal: hit.normal,
+                     worldTransform: transform,
+                     instanceID: resolved.component.instanceID,
+                     category: model.category,
+                     placementRole: model.placementRole)
+    }
+
+    private func realWorldPlaneTarget(at point: CGPoint, in arView: ARView, alignment: ARRaycastQuery.TargetAlignment) -> PlacementTarget? {
+        guard let query = arView.makeRaycastQuery(from: point, allowing: .estimatedPlane, alignment: alignment),
+              let result = arView.session.raycast(query).first else { return nil }
+        let position = SIMD3<Float>(result.worldTransform.columns.3.x,
+                                    result.worldTransform.columns.3.y,
+                                    result.worldTransform.columns.3.z)
+        let normal = SIMD3<Float>(result.worldTransform.columns.1.x,
+                                  result.worldTransform.columns.1.y,
+                                  result.worldTransform.columns.1.z)
+        guard position.allFinite, normal.allFinite, simd_length(normal) > 0 else { return nil }
+        return PlacementTarget(worldPosition: position,
+                               worldTransform: result.worldTransform,
+                               surfaceNormal: simd_normalize(normal),
+                               source: .arPlane,
+                               supportingObjectID: nil)
+    }
+
+    private func clearTarget() {
+        placementTarget = nil
+        indicator.isEnabled = false
     }
 }
 

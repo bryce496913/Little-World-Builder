@@ -6,6 +6,99 @@ import RealityKit
 @testable import Little_World_Builder
 
 final class Little_World_BuilderTests: XCTestCase {
+    private func objectCandidate(normal: SIMD3<Float> = [0, 1, 0],
+                                 category: ModelCategory? = .land,
+                                 role: PlacementRole? = .base,
+                                 id: UUID = UUID(),
+                                 position: SIMD3<Float> = [1, 2, 3]) -> PlacementTargetPolicy.ObjectCandidate {
+        var transform = matrix_identity_float4x4
+        transform.columns.3 = SIMD4(position, 1)
+        return .init(position: position, normal: normal, worldTransform: transform,
+                     instanceID: id, category: category, placementRole: role)
+    }
+
+    private func planeTarget(position: SIMD3<Float> = [4, 0, 5]) -> PlacementTarget {
+        var transform = matrix_identity_float4x4
+        transform.columns.3 = SIMD4(position, 1)
+        return .init(worldPosition: position, worldTransform: transform, surfaceNormal: [0, 1, 0],
+                     source: .arPlane, supportingObjectID: nil)
+    }
+
+    func testEligibleObjectTargetReportsSourceAndSupportingID() throws {
+        let id = UUID()
+        let target = try XCTUnwrap(PlacementTargetPolicy.select(objectCandidate: objectCandidate(id: id), planeTarget: planeTarget()))
+        XCTAssertEqual(target.source, .placedObject)
+        XCTAssertEqual(target.supportingObjectID, id)
+        XCTAssertEqual(target.worldPosition, [1, 2, 3])
+    }
+
+    func testPlaneFallbackHasNoStaleSupportingID() throws {
+        let noHit = try XCTUnwrap(PlacementTargetPolicy.select(objectCandidate: nil, planeTarget: planeTarget()))
+        XCTAssertEqual(noHit.source, .arPlane)
+        XCTAssertNil(noHit.supportingObjectID)
+
+        let ineligible = try XCTUnwrap(PlacementTargetPolicy.select(
+            objectCandidate: objectCandidate(category: .trees, role: .tree), planeTarget: planeTarget()))
+        XCTAssertEqual(ineligible.source, .arPlane)
+        XCTAssertNil(ineligible.supportingObjectID)
+    }
+
+    func testOnlyUpwardSupportCapableSurfacesAreAccepted() {
+        XCTAssertEqual(PlacementTargetPolicy.minimumUpwardNormalDot, 0.67)
+        let acceptedY = PlacementTargetPolicy.minimumUpwardNormalDot + 0.01
+        let rejectedY = PlacementTargetPolicy.minimumUpwardNormalDot - 0.01
+        XCTAssertNotNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(normal: [sqrt(1 - acceptedY * acceptedY), acceptedY, 0])))
+        XCTAssertNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(normal: [sqrt(1 - rejectedY * rejectedY), rejectedY, 0])))
+        XCTAssertNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(normal: [1, 0.1, 0])))
+        XCTAssertNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(normal: [0, -1, 0])))
+        XCTAssertNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(category: .creatures, role: .creature)))
+        XCTAssertNil(PlacementTargetPolicy.objectTarget(from: objectCandidate(category: .structures, role: .structure)))
+    }
+
+    func testInvalidObjectHitDataFallsBackToPlane() throws {
+        let invalids = [
+            objectCandidate(normal: .zero),
+            objectCandidate(normal: [.nan, 1, 0]),
+            objectCandidate(position: [.infinity, 0, 0])
+        ]
+        for candidate in invalids {
+            let target = try XCTUnwrap(PlacementTargetPolicy.select(objectCandidate: candidate, planeTarget: planeTarget()))
+            XCTAssertEqual(target.source, .arPlane)
+            XCTAssertNil(target.supportingObjectID)
+        }
+    }
+
+    func testChildMeshResolvesToRegisteredRootAndTemporaryEntitiesAreIgnored() throws {
+        let id = UUID()
+        let registeredRoot = Entity()
+        registeredRoot.components.set(LocalModelComponent(instanceID: id, catalogAssetID: "floating_island", assetFileName: "floating_island.usdz"))
+        let intermediate = Entity()
+        let visibleChild = ModelEntity(mesh: .generateBox(size: 0.1))
+        registeredRoot.addChild(intermediate)
+        intermediate.addChild(visibleChild)
+
+        let resolved = try XCTUnwrap(NativePlacementManager.registeredRoot(from: visibleChild))
+        XCTAssertTrue(resolved.entity === registeredRoot)
+        XCTAssertEqual(resolved.component.instanceID, id)
+
+        let grid = Entity()
+        let temporaryPreview = ModelEntity(mesh: .generatePlane(width: 0.1, depth: 0.1))
+        grid.addChild(temporaryPreview)
+        XCTAssertNil(NativePlacementManager.registeredRoot(from: temporaryPreview))
+    }
+
+    func testSavedWorldRootIgnoresObjectCandidateAndUsesPlaneOnly() throws {
+        let plane = planeTarget()
+        let target = try XCTUnwrap(PlacementTargetPolicy.select(purpose: .savedWorldRoot,
+                                                                objectCandidate: objectCandidate(),
+                                                                planeTarget: plane))
+        XCTAssertEqual(target.source, .arPlane)
+        XCTAssertNil(target.supportingObjectID)
+        XCTAssertNil(PlacementTargetPolicy.select(purpose: .savedWorldRoot,
+                                                  objectCandidate: objectCandidate(),
+                                                  planeTarget: nil))
+    }
+
     func testSettingIdenticalGridConfigurationDoesNotPublishAgain() {
         let manager = WorldManager()
         let configuration = SavedGridConfiguration(cellSizeMeters: 0.1, rotationStepDegrees: 90, wasEnabled: true)
