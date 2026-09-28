@@ -52,6 +52,22 @@ struct PlacementView: View {
                             .accessibilityLabel("Rotate pending asset right")
                     }
                 }
+                HStack(spacing: 12) {
+                    heightButton("Lower pending object", icon: "arrow.down") {
+                        placementSettings.adjustPendingHeight(.lower)
+                    }
+                    Text(heightOffsetText)
+                        .appText(.paragraph)
+                        .monospacedDigit()
+                        .accessibilityLabel(heightOffsetAccessibilityLabel)
+                    heightButton("Raise pending object", icon: "arrow.up") {
+                        placementSettings.adjustPendingHeight(.raise)
+                    }
+                    heightButton("Reset placement height", icon: "arrow.uturn.backward") {
+                        placementSettings.resetPendingHeight()
+                    }
+                    .disabled(placementSettings.pendingHeightOffsetMeters == 0)
+                }
             }
             HStack(spacing: 18) {
                 AppButton("Cancel", systemImage: "xmark", style: .secondary) {
@@ -99,5 +115,24 @@ struct PlacementView: View {
                     .stroke(isSelected ? AppTheme.highlight : AppTheme.mutedText.opacity(0.45),
                             lineWidth: isSelected ? 2 : 1)
             )
+    }
+
+    private var heightOffsetText: String {
+        String(format: "Height offset: %+.0f cm", placementSettings.pendingHeightOffsetMeters * 100)
+    }
+
+    private var heightOffsetAccessibilityLabel: String {
+        let centimetres = Int((placementSettings.pendingHeightOffsetMeters * 100).rounded())
+        if centimetres == 0 { return "Placement height offset, zero centimetres" }
+        return "Placement height offset, \(centimetres > 0 ? "plus" : "minus") \(abs(centimetres)) centimetres"
+    }
+
+    private func heightButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon).font(.system(size: 18, weight: .bold)).frame(width: 44, height: 44)
+                .background(AppTheme.accent.opacity(0.22)).clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }

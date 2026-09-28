@@ -30,11 +30,21 @@ struct HeightAdjustmentState: Equatable {
 
 /// Pure build-root-local transform editing shared by placed-object editing and future placement UI.
 enum VerticalAdjustment {
-    static func applying(_ direction: VerticalAdjustmentDirection, to transform: Transform) -> Transform? {
-        guard isFinite(transform), transform.translation.y.isFinite else { return nil }
-        let nextY = transform.translation.y + direction.signedStep
+    static func applying(_ direction: VerticalAdjustmentDirection, to offset: Float) -> Float? {
+        guard offset.isFinite else { return nil }
+        let result = offset + direction.signedStep
+        return result.isFinite ? result : nil
+    }
+
+    static func applying(offset: Float, to transform: Transform) -> Transform? {
+        guard offset.isFinite, isFinite(transform) else { return nil }
+        let nextY = transform.translation.y + offset
         guard nextY.isFinite else { return nil }
         return replacingY(in: transform, with: nextY)
+    }
+
+    static func applying(_ direction: VerticalAdjustmentDirection, to transform: Transform) -> Transform? {
+        applying(offset: direction.signedStep, to: transform)
     }
 
     static func restoring(y: Float, in transform: Transform) -> Transform? {

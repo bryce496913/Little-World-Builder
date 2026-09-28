@@ -110,6 +110,7 @@ struct BrowseButtons: View {
 struct SceneButtons: View {
     @EnvironmentObject var sceneManager: SceneManager
     @EnvironmentObject var worldManager: WorldManager
+    @EnvironmentObject var placementSettings: PlacementSettings
 
     var body: some View {
         HStack(spacing: 14) {
@@ -120,6 +121,7 @@ struct SceneButtons: View {
             ControlButton(title: "Clear", systemIconName: "trash", role: .destructive) {
                 self.sceneManager.clearCurrentScene()
                 self.worldManager.resetActiveWorld()
+                self.placementSettings.resetPendingHeight()
             }
         }
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SavedWorldsView: View {
     @EnvironmentObject var worldManager: WorldManager
+    @EnvironmentObject var placementSettings: PlacementSettings
     @State private var refreshID = UUID()
     @State private var worldPendingDeletion: SavedWorld?
     @State private var navigateToWorld = false
@@ -30,6 +31,8 @@ struct SavedWorldsView: View {
                     } else {
                         ForEach(savedWorlds) { world in
                             SavedWorldCard(savedWorld: world, open: {
+                                placementSettings.selectedModel = nil
+                                placementSettings.resetPendingHeight()
                                 worldManager.loadWorld(world)
                                 navigateToWorld = true
                             }, delete: { worldPendingDeletion = world })
