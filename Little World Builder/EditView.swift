@@ -22,6 +22,18 @@ struct EditView: View {
                 editButton("Smaller", icon: "minus.magnifyingglass") { scale(by: 0.9) }
                 editButton("Larger", icon: "plus.magnifyingglass") { scale(by: 1.1) }
             }
+            HStack(spacing: 12) {
+                editButton("Lower selected object", icon: "arrow.down") { worldManager.adjustSelectedHeight(.lower) }
+                    .disabled(!worldManager.heightAdjustmentState.canAdjust)
+                Text(heightText)
+                    .appText(.paragraph)
+                    .monospacedDigit()
+                    .accessibilityLabel(heightAccessibilityLabel)
+                editButton("Raise selected object", icon: "arrow.up") { worldManager.adjustSelectedHeight(.raise) }
+                    .disabled(!worldManager.heightAdjustmentState.canAdjust)
+                editButton("Undo height adjustment", icon: "arrow.uturn.backward") { worldManager.undoSelectedHeightAdjustment() }
+                    .disabled(!worldManager.heightAdjustmentState.canUndo)
+            }
             HStack(spacing: 18) {
                 AppButton("Done", systemImage: "checkmark", style: .secondary) {
                     worldManager.clearSelection()
@@ -39,6 +51,16 @@ struct EditView: View {
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(AppTheme.highlight, lineWidth: 1))
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
+    }
+
+    private var heightText: String {
+        guard let y = worldManager.heightAdjustmentState.currentY else { return "Height unavailable" }
+        return String(format: "Height %.0f cm", y * 100)
+    }
+
+    private var heightAccessibilityLabel: String {
+        guard let y = worldManager.heightAdjustmentState.currentY else { return "Height unavailable" }
+        return String(format: "Height, %.0f centimetres", y * 100)
     }
 
     private func editButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {

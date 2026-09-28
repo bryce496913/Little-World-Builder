@@ -11,6 +11,7 @@
 		02MANIFESTJSONBUILD001 /* AssetManifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTJSONFILE001 /* AssetManifest.json */; };
 		02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDFILE000000001 /* SavedWorld.swift */; };
 		02WORLDMANBUILD000001 /* WorldManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDMANFILE000001 /* WorldManager.swift */; };
+		02VERTICALBUILD000001 /* VerticalAdjustment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02VERTICALFILE000001 /* VerticalAdjustment.swift */; };
 		02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */; };
 		02AATHEMEBUILD000000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AATHEME0000000000000001 /* AppTheme.swift */; };
 		02AAMENUBUILD000000001 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AAMENU0000000000000001 /* MainMenuView.swift */; };
@@ -61,6 +62,7 @@
 		02MANIFESTJSONFILE001 /* AssetManifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = AssetManifest.json; sourceTree = "<group>"; };
 		02WORLDFILE000000001 /* SavedWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorld.swift; sourceTree = "<group>"; };
 		02WORLDMANFILE000001 /* WorldManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldManager.swift; sourceTree = "<group>"; };
+		02VERTICALFILE000001 /* VerticalAdjustment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerticalAdjustment.swift; sourceTree = "<group>"; };
 		02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlacementManager.swift; sourceTree = "<group>"; };
 		02AATHEME0000000000000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		02AAMENU0000000000000001 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
@@ -164,6 +166,7 @@
 				02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */,
 				02WORLDFILE000000001 /* SavedWorld.swift */,
 				02WORLDMANFILE000001 /* WorldManager.swift */,
+				02VERTICALFILE000001 /* VerticalAdjustment.swift */,
 				02913F2527335E5B00869572 /* PlacementSettings.swift */,
 				02913F2427335E5B00869572 /* PlacementView.swift */,
 				02913EFD27334C7900869572 /* Preview Content */,
@@ -352,6 +355,7 @@
 				02E2A8E927BF010C003B9E3B /* ScenePersistenceHelper.swift in Sources */,
 				02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */,
 				02WORLDMANBUILD000001 /* WorldManager.swift in Sources */,
+				02VERTICALBUILD000001 /* VerticalAdjustment.swift in Sources */,
 				02913EF827334C7800869572 /* Little_World_BuilderApp.swift in Sources */,
 				02913F2F27335E5B00869572 /* PlacementView.swift in Sources */,
 				02913F3827335E5C00869572 /* View+Extensions.swift in Sources */,

@@ -17,6 +17,7 @@ final class CustomARView: ARView {
     private let worldManager: WorldManager
     private let selectionOutline = SelectionOutlineController()
     private var selectionCancellable: AnyCancellable?
+    private var heightAdjustmentCancellable: AnyCancellable?
     private var rotationStartTransform: Transform?
     private var scaleStartTransform: Transform?
     
@@ -101,6 +102,9 @@ final class CustomARView: ARView {
                 self?.scaleStartTransform = nil
                 self?.selectionOutline.show(selection: state.selection, worldManager: self?.worldManager)
             }
+        }
+        heightAdjustmentCancellable = worldManager.$heightAdjustmentState.dropFirst().sink { [weak self] _ in
+            DispatchQueue.main.async { self?.selectionOutline.refresh() }
         }
         self.peopleOcclusionCancellable = sessionSettings.$isPeopleOcclusionEnabled.sink { [weak self] isEnabled in
             self?.updatePeopleOcclusion(isEnabled: isEnabled)

@@ -94,6 +94,102 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(other.position, otherBefore.translation); XCTAssertEqual(other.scale, otherBefore.scale); XCTAssertEqual(other.orientation.vector, otherBefore.rotation.vector)
         XCTAssertEqual(child.position, childBefore.translation); XCTAssertEqual(child.scale, childBefore.scale); XCTAssertEqual(child.orientation.vector, childBefore.rotation.vector)
     }
+
+    func testVerticalAdjustmentUsesExactStepsAndHandlesSignedHeights() throws {
+        var transform = Transform(translation: [1, -0.03, 3])
+        transform = try XCTUnwrap(VerticalAdjustment.applying(.raise, to: transform))
+        XCTAssertEqual(transform.translation.y, -0.01, accuracy: 0.000001)
+        transform = try XCTUnwrap(VerticalAdjustment.applying(.raise, to: transform))
+        XCTAssertEqual(transform.translation.y, 0.01, accuracy: 0.000001)
+        transform.translation.y = 0.03
+        transform = try XCTUnwrap(VerticalAdjustment.applying(.lower, to: transform))
+        XCTAssertEqual(transform.translation.y, 0.01, accuracy: 0.000001)
+        XCTAssertEqual(VerticalAdjustmentConfiguration.stepMeters, 0.02)
+    }
+
+    func testHeightAdjustmentChangesOnlySelectedRootYAndPreservesTransformAndChildren() throws {
+        let (manager, root) = activeManager()
+        let (selectedID, selected) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let (_, other) = registeredObject(id: "whale", name: "Whale", in: manager, root: root)
+        let child = Entity(); child.transform = Transform(scale: [0.2, 0.3, 0.4], rotation: simd_quatf(angle: 0.4, axis: [1, 0, 0]), translation: [4, 5, 6]); selected.addChild(child)
+        selected.transform = Transform(scale: [0.7, 0.8, 0.9], rotation: simd_quatf(angle: 0.6, axis: [0, 1, 0]), translation: [1, 2, 3])
+        let selectedBefore = selected.transform; let childBefore = child.transform; let otherBefore = other.transform
+
+        XCTAssertTrue(manager.select(instanceID: selectedID))
+        XCTAssertTrue(manager.adjustSelectedHeight(.raise))
+        XCTAssertEqual(selected.position.x, 1, accuracy: 0.000001)
+        XCTAssertEqual(selected.position.y, 2.02, accuracy: 0.000001)
+        XCTAssertEqual(selected.position.z, 3, accuracy: 0.000001)
+        XCTAssertEqual(selected.orientation.vector, selectedBefore.rotation.vector)
+        XCTAssertEqual(selected.scale, selectedBefore.scale)
+        XCTAssertEqual(child.position, childBefore.translation)
+        XCTAssertEqual(child.orientation.vector, childBefore.rotation.vector)
+        XCTAssertEqual(child.scale, childBefore.scale)
+        XCTAssertEqual(other.position, otherBefore.translation)
+        XCTAssertEqual(other.orientation.vector, otherBefore.rotation.vector)
+        XCTAssertEqual(other.scale, otherBefore.scale)
+        XCTAssertTrue(child.parent === selected)
+        XCTAssertTrue(selected.parent === root)
+    }
+
+    func testOneStepHeightUndoPreservesCurrentRotationAndScale() {
+        let (manager, root) = activeManager()
+        let (id, selected) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        selected.position = [1, 0.4, 3]
+        manager.select(instanceID: id)
+        XCTAssertTrue(manager.adjustSelectedHeight(.lower))
+        selected.orientation = simd_quatf(angle: 0.8, axis: [0, 1, 0])
+        selected.scale = [1.2, 1.3, 1.4]
+        let rotation = selected.orientation; let scale = selected.scale
+        XCTAssertTrue(manager.undoSelectedHeightAdjustment())
+        XCTAssertEqual(selected.position.y, 0.4, accuracy: 0.000001)
+        XCTAssertEqual(selected.orientation.vector, rotation.vector)
+        XCTAssertEqual(selected.scale, scale)
+        XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+        XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+    }
+
+    func testSelectingAnotherEntityAndWorldResetClearHeightUndo() {
+        let (manager, root) = activeManager()
+        let (first, _) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let (second, _) = registeredObject(id: "whale", name: "Whale", in: manager, root: root)
+        manager.select(instanceID: first); manager.adjustSelectedHeight(.raise)
+        XCTAssertTrue(manager.heightAdjustmentState.canUndo)
+        manager.select(instanceID: second)
+        XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+        manager.adjustSelectedHeight(.lower); manager.resetActiveWorld()
+        XCTAssertEqual(manager.heightAdjustmentState, .inactive)
+    }
+
+    func testInvalidHeightAndNonDirectRegisteredRootAreRejectedSafely() {
+        let (manager, root) = activeManager()
+        let (id, selected) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        selected.position.y = .nan
+        manager.select(instanceID: id)
+        XCTAssertFalse(manager.heightAdjustmentState.canAdjust)
+        XCTAssertFalse(manager.adjustSelectedHeight(.raise))
+        XCTAssertTrue(selected.position.y.isNaN)
+
+        selected.position.y = 0
+        let intermediate = Entity(); root.addChild(intermediate); intermediate.addChild(selected)
+        XCTAssertFalse(manager.adjustSelectedHeight(.raise))
+        XCTAssertNil(manager.interactionState.selection)
+    }
+
+    func testAdjustedHeightRoundTripsThroughSchemaV2WithoutChangingScale() throws {
+        let (manager, root) = activeManager()
+        let (id, selected) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        selected.transform = Transform(scale: [0.5, 0.5, 0.5], rotation: simd_quatf(angle: 0.3, axis: [0, 1, 0]), translation: [1, 0.11, 2])
+        manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+        let world = try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: manager))
+        let decoded = try JSONDecoder().decode(SavedWorld.self, from: JSONEncoder().encode(world))
+        let saved = try XCTUnwrap(decoded.placedAssets.first)
+        XCTAssertEqual(decoded.schemaVersion, 2)
+        XCTAssertEqual(saved.localTransform.position.y, 0.13, accuracy: 0.000001)
+        XCTAssertEqual(saved.localTransform.scale, .init(x: 0.5, y: 0.5, z: 0.5))
+        XCTAssertEqual(saved.localTransform.realityKitTransform.scale, selected.scale)
+        XCTAssertEqual(saved.localTransform.realityKitTransform.rotation.vector, selected.orientation.vector)
+    }
     private func objectCandidate(normal: SIMD3<Float> = [0, 1, 0],
                                  category: ModelCategory? = .land,
                                  role: PlacementRole? = .base,
