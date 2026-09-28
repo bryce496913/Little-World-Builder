@@ -40,12 +40,15 @@ final class PlacementSettings: ObservableObject {
     @Published var placementMode: PlacementMode = .free
     @Published var gridSettings: GridSettings = .default
     @Published private(set) var requestedQuarterTurns: Int = 0
+    /// Transient, build-root-local Y adjustment for the asset currently being positioned.
+    @Published private(set) var pendingHeightOffsetMeters: Float = 0
     private(set) var pendingPlacementSolution: PendingPlacementSolution?
 
     // When the user selects a model in BrowseView, this property is set.
     @Published var selectedModel: Model? {
         willSet(newValue) {
             print("Setting selectedModel to \(String(describing: newValue?.name))")
+            if selectedModel?.id != newValue?.id { resetPendingHeight() }
         }
     }
 
@@ -74,6 +77,25 @@ final class PlacementSettings: ObservableObject {
     func resetPendingRotation() {
         requestedQuarterTurns = 0
         pendingPlacementSolution = nil
+    }
+
+    @discardableResult
+    func adjustPendingHeight(_ direction: VerticalAdjustmentDirection) -> Bool {
+        guard selectedModel != nil,
+              let adjusted = VerticalAdjustment.applying(direction, to: pendingHeightOffsetMeters) else { return false }
+        pendingHeightOffsetMeters = adjusted
+        pendingPlacementSolution = nil
+        return true
+    }
+
+    func resetPendingHeight() {
+        guard pendingHeightOffsetMeters != 0 || pendingPlacementSolution != nil else { return }
+        pendingHeightOffsetMeters = 0
+        pendingPlacementSolution = nil
+    }
+
+    func transformByApplyingPendingHeight(to baseTransform: Transform) -> Transform? {
+        VerticalAdjustment.applying(offset: pendingHeightOffsetMeters, to: baseTransform)
     }
 
     func publish(_ solution: PendingPlacementSolution?) { pendingPlacementSolution = solution }

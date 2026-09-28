@@ -314,6 +314,99 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(settings.placementMode, .free)
     }
 
+    private func placementModel(id: String, snapBehavior: SnapBehavior = .ground) -> Model {
+        let entry = AssetManifestEntry(id: id, fileName: "\(id).usdz", displayName: id,
+                                       category: .trees, thumbnailFileName: "\(id).png", defaultScale: 1,
+                                       rotationXDegrees: 0, placementRole: .tree,
+                                       gridFootprint: .init(width: 1, depth: 1), snapBehavior: snapBehavior)
+        return Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+    }
+
+    func testPendingHeightDefaultsStepsResetsAndRejectsNonFiniteValues() throws {
+        let settings = PlacementSettings()
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0)
+        settings.selectedModel = placementModel(id: "tree")
+        XCTAssertTrue(settings.adjustPendingHeight(.raise))
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0.02, accuracy: 0.000001)
+        XCTAssertTrue(settings.adjustPendingHeight(.lower))
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0, accuracy: 0.000001)
+        settings.adjustPendingHeight(.lower)
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, -0.02, accuracy: 0.000001)
+        settings.resetPendingHeight()
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0)
+        XCTAssertNil(VerticalAdjustment.applying(offset: .nan, to: Transform()))
+        XCTAssertNil(VerticalAdjustment.applying(.raise, to: Float.infinity))
+    }
+
+    func testPendingHeightIsRelativeToChangingSurfaceAndSurvivesModeChanges() throws {
+        let settings = PlacementSettings()
+        settings.selectedModel = placementModel(id: "birds", snapBehavior: .floating)
+        for _ in 0..<3 { settings.adjustPendingHeight(.raise) }
+        let island = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: Transform(translation: [1, 0.20, 2])))
+        XCTAssertEqual(island.translation.y, 0.26, accuracy: 0.000001)
+        settings.setPlacementMode(.grid)
+        let floor = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: Transform(translation: [3, 0, 4])))
+        XCTAssertEqual(floor.translation.y, 0.06, accuracy: 0.000001)
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0.06, accuracy: 0.000001)
+    }
+
+    func testDifferentAssetAndCancellationResetPendingHeight() {
+        let settings = PlacementSettings()
+        let tree = placementModel(id: "tree")
+        settings.selectedModel = tree
+        settings.adjustPendingHeight(.raise)
+        settings.selectedModel = tree
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0.02, accuracy: 0.000001)
+        settings.selectedModel = placementModel(id: "rock")
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0)
+        settings.adjustPendingHeight(.lower)
+        settings.selectedModel = nil
+        XCTAssertEqual(settings.pendingHeightOffsetMeters, 0)
+    }
+
+    func testFinalPendingTransformIsSharedByPreviewAndConfirmationAndAppliedOnce() throws {
+        let settings = PlacementSettings()
+        let model = placementModel(id: "fish", snapBehavior: .free)
+        settings.selectedModel = model
+        settings.adjustPendingHeight(.lower)
+        settings.adjustPendingHeight(.lower)
+        let base = Transform(translation: [0.13, 0.5, -0.27])
+        let final = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: base))
+        let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
+                                                rawWorldTransform: matrix_identity_float4x4,
+                                                rootLocalTransform: final, targetSource: .arPlane,
+                                                supportingObjectID: nil, capturedSurfaceHeight: base.translation.y,
+                                                gridCoordinateX: nil, gridCoordinateZ: nil, isValid: true, capturedAt: Date())
+        settings.publish(solution)
+        let confirmed = try XCTUnwrap(settings.capturePlacement(for: model))
+        XCTAssertEqual(confirmed.solution.rootLocalTransform.translation, final.translation)
+        XCTAssertEqual(final.translation.y, 0.46, accuracy: 0.000001)
+        XCTAssertEqual(final.translation.x, base.translation.x)
+        XCTAssertEqual(final.translation.z, base.translation.z)
+    }
+
+    func testFirstPlacementKeepsAnchorAtSurfaceAndStoresOffsetInAssetLocalY() throws {
+        let settings = PlacementSettings()
+        settings.selectedModel = placementModel(id: "birds", snapBehavior: .floating)
+        for _ in 0..<5 { settings.adjustPendingHeight(.raise) }
+        var nativeSurface = matrix_identity_float4x4
+        nativeSurface.columns.3 = SIMD4(2, 1.25, -3, 1)
+        let rootWorld = nativeSurface
+        let baseLocal = Transform(matrix: try XCTUnwrap(WorldTransformMath.localMatrix(world: nativeSurface, rootWorld: rootWorld)))
+        let assetLocal = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: baseLocal))
+        XCTAssertEqual(rootWorld.columns.3.y, nativeSurface.columns.3.y)
+        XCTAssertEqual(assetLocal.translation.y, 0.10, accuracy: 0.000001)
+    }
+
+    func testFreeAssetAcceptsHeightWithoutXZOrYawSnapping() throws {
+        let raw = Transform(scale: .one, rotation: simd_quatf(angle: 0.37, axis: [0, 1, 0]), translation: [0.13, 0.2, -0.27])
+        let base = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: raw, footprint: .init(width: 2, depth: 1),
+                                                         snapBehavior: .free, settings: .default, requestedQuarterTurns: 3))
+        let adjusted = try XCTUnwrap(VerticalAdjustment.applying(offset: 0.02, to: base.transform))
+        XCTAssertEqual(adjusted.translation, [0.13, 0.22, -0.27])
+        XCTAssertEqual(adjusted.rotation.vector, raw.rotation.vector)
+    }
+
     func testSettingIdenticalPlacementModeDoesNotPublishAgain() {
         let settings = PlacementSettings()
         var publishCount = 0

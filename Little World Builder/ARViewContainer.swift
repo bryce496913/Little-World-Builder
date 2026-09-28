@@ -12,6 +12,7 @@ struct ARViewContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> CustomARView {
         sceneManager.clearCurrentScene()
         worldManager.resetActiveWorld()
+        placementSettings.resetPendingHeight()
         let view = CustomARView(frame:.zero,sessionSettings:sessionSettings,worldManager:worldManager)
         sceneManager.arView=view
         placementSettings.sceneObserver=view.scene.subscribe(to:SceneEvents.Update.self) { _ in self.updateScene(for:view) }
@@ -23,6 +24,7 @@ struct ARViewContainer: UIViewRepresentable {
         if let model = placementSettings.selectedModel {
             worldManager.beginPlacingAsset(catalogAssetID: model.id)
         } else if let world = worldManager.pendingWorldForPlacement {
+            placementSettings.resetPendingHeight()
             worldManager.beginPlacingSavedWorld(id: world.id)
         } else if case .placingAsset = worldManager.interactionState {
             worldManager.finishPlacement()
@@ -75,15 +77,20 @@ struct ARViewContainer: UIViewRepresentable {
             result = GridSnapResult(transform: rawLocal, effectiveFootprint: model.gridFootprint, gridCoordinateX: 0, gridCoordinateZ: 0)
             arView.gridVisuals.hideGrid()
         }
+        guard let finalTransform = placementSettings.transformByApplyingPendingHeight(to: result.transform) else {
+            placementSettings.publish(nil); arView.gridVisuals.hidePreview(); return
+        }
+        let finalResult = GridSnapResult(transform: finalTransform, effectiveFootprint: result.effectiveFootprint,
+                                         gridCoordinateX: result.gridCoordinateX, gridCoordinateZ: result.gridCoordinateZ)
         let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
-                                                rawWorldTransform: rawWorld, rootLocalTransform: result.transform,
+                                                rawWorldTransform: rawWorld, rootLocalTransform: finalTransform,
                                                 targetSource: target.source, supportingObjectID: target.supportingObjectID,
                                                 capturedSurfaceHeight: rawLocal.translation.y,
                                                 gridCoordinateX: placementSettings.placementMode == .grid ? result.gridCoordinateX : nil,
                                                 gridCoordinateZ: placementSettings.placementMode == .grid ? result.gridCoordinateZ : nil,
                                                 isValid: true, capturedAt: Date())
         placementSettings.publish(solution)
-        arView.gridVisuals.showPreview(result: result, settings: placementSettings.gridSettings,
+        arView.gridVisuals.showPreview(result: finalResult, settings: placementSettings.gridSettings,
                                        visualBounds: model.normalizedHorizontalVisualBounds(), showsFootprint: placementSettings.placementMode == .grid,
                                        root: worldManager.buildRoot, rootWorldTransform: rootWorld, in: arView)
         placementSettings.placementStatusMessage = placementSettings.placementMode == .grid && model.snapBehavior == .free ? "Free placement asset" : "Ready to place"
@@ -113,7 +120,7 @@ struct ARViewContainer: UIViewRepresentable {
         root.addChild(clone); model.normalizePlacementSize(of:clone,relativeTo:root,at:placementPosition)
         configure(clone,in:arView); worldManager.register(clone,model:model)
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
-        placementSettings.resetPendingRotation(); arView.gridVisuals.hidePreview(); worldManager.finishPlacement()
+        placementSettings.resetPendingRotation(); placementSettings.resetPendingHeight(); arView.gridVisuals.hidePreview(); worldManager.finishPlacement()
     }
 
     private func place(_ world: SavedWorld, at worldTransform: simd_float4x4, in arView: CustomARView) {
