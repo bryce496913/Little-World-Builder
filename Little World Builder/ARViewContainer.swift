@@ -128,7 +128,21 @@ struct ARViewContainer: UIViewRepresentable {
         var restored:[(ModelEntity,Model,SavedPlacedAsset)]=[]
         for saved in world.placedAssets {
             guard let model=modelsViewModel.model(matching:saved.catalogAssetID) ?? modelsViewModel.model(matching:saved.assetFileName) else { print("World Warning: missing bundled asset \(saved.assetFileName); skipped"); continue }
-            let attach:(ModelEntity)->Void = { source in let clone=source.clone(recursive:true); clone.name="placed-\(saved.id.uuidString)"; clone.transform=saved.localTransform.realityKitTransform; self.configure(clone,in:arView); root.addChild(clone); restored.append((clone,model,saved)) }
+            let attach:(ModelEntity)->Void = { source in
+                let clone=source.clone(recursive:true)
+                clone.name="placed-\(saved.id.uuidString)"
+                // Attach and configure first. The serialized root-local transform is applied last
+                // and exactly once; catalog orientation, normalization, snapping, and support
+                // height are already represented by that transform.
+                root.addChild(clone)
+                self.configure(clone,in:arView)
+                guard SavedPlacedAssetRestorer.apply(saved, to: clone, under: root) else {
+                    clone.removeFromParent()
+                    print("World Error: invalid restore transform for \(saved.assetFileName)")
+                    return
+                }
+                restored.append((clone,model,saved))
+            }
             if let source=model.modelEntity { attach(source) } else { group.enter(); model.asyncLoadModelEntity { ok,error in if ok,let source=model.modelEntity { attach(source) } else { print("World Error: \(saved.assetFileName): \(error?.localizedDescription ?? "load failed")") }; group.leave() } }
         }
         group.notify(queue:.main) {
@@ -142,7 +156,12 @@ struct ARViewContainer: UIViewRepresentable {
             if self.placementSettings.placementMode == .grid {
                 arView.gridVisuals.showGrid(settings: self.placementSettings.gridSettings, root: root, candidateWorldTransform: worldTransform, in: arView)
             } else { arView.gridVisuals.hideGrid() }
-            for (entity,model,saved) in restored { self.worldManager.register(entity,model:model,instanceID:saved.id,displayName:saved.displayName,category:saved.category) }
+            for (entity,model,saved) in restored {
+                self.worldManager.register(entity,model:model,instanceID:saved.id,displayName:saved.displayName,category:saved.category)
+#if DEBUG
+                print("RESTORE \(saved.catalogAssetID) \(saved.id)\nsaved y: \(saved.localTransform.position.y)\napplied y: \(entity.transform.translation.y)\nfinal root-local y: \(entity.position(relativeTo: root).y)")
+#endif
+            }
             self.worldManager.finishPendingWorldPlacement(); print("World: restored \(restored.count) asset(s) under one build root")
         }
     }

@@ -190,6 +190,76 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(saved.localTransform.realityKitTransform.scale, selected.scale)
         XCTAssertEqual(saved.localTransform.realityKitTransform.rotation.vector, selected.orientation.vector)
     }
+
+    func testPlacedRootTransformsSurviveFullSaveJSONRestoreAndRegistration() throws {
+        let (sourceManager, sourceRoot) = activeManager()
+        let specifications: [(String, String, SIMD3<Float>, Float, SIMD3<Float>)] = [
+            ("island", "Island", [0.31, 0.00, -0.27], 0.17, [0.9, 1.1, 1.0]),
+            ("tree", "Tree", [-0.14, 0.18, 0.33], -0.41, [0.55, 0.62, 0.58]),
+            ("birds", "Birds", [0.22, 0.42, 0.11], 0.73, [1.2, 0.8, 1.1]),
+            ("fish", "Fish", [-0.37, -0.06, -0.19], -0.29, [0.7, 0.75, 0.8])
+        ]
+        for (id, name, position, angle, scale) in specifications {
+            let (_, entity) = registeredObject(id: id, name: name, in: sourceManager, root: sourceRoot)
+            entity.transform = Transform(scale: scale,
+                                         rotation: simd_quatf(angle: angle, axis: simd_normalize(SIMD3<Float>(1, 2, 3))),
+                                         translation: position)
+        }
+
+        let encoded = try JSONEncoder().encode(try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: sourceManager)))
+        let decoded = try JSONDecoder().decode(SavedWorld.self, from: encoded)
+        XCTAssertEqual(decoded.schemaVersion, 2)
+
+        let (restoredManager, restoredRoot) = activeManager()
+        for saved in decoded.placedAssets {
+            let clone = ModelEntity(mesh: .generateBox(size: 0.1)).clone(recursive: true)
+            restoredRoot.addChild(clone)
+            clone.generateCollisionShapes(recursive: true)
+            XCTAssertTrue(SavedPlacedAssetRestorer.apply(saved, to: clone, under: restoredRoot))
+            let model = placementModel(id: saved.catalogAssetID)
+            restoredManager.register(clone, model: model, instanceID: saved.id,
+                                     displayName: saved.displayName, category: saved.category)
+
+            XCTAssertTrue(clone.parent === restoredRoot)
+            XCTAssertEqual(clone.position.x, saved.localTransform.position.x, accuracy: 0.000001)
+            XCTAssertEqual(clone.position.y, saved.localTransform.position.y, accuracy: 0.000001)
+            XCTAssertEqual(clone.position.z, saved.localTransform.position.z, accuracy: 0.000001)
+            XCTAssertEqual(clone.orientation.vector, saved.localTransform.rotation.simd.vector)
+            XCTAssertEqual(clone.scale, saved.localTransform.scale.simd)
+            XCTAssertEqual(try XCTUnwrap(restoredManager.entity(for: saved.id)).position.y,
+                           saved.localTransform.position.y, accuracy: 0.000001)
+        }
+        XCTAssertEqual(Set(decoded.placedAssets.map { $0.localTransform.position.y }), Set([0.00, 0.18, 0.42, -0.06]))
+    }
+
+    func testInitialPlacementSurfaceAndPendingHeightSurviveRestore() throws {
+        let settings = PlacementSettings()
+        settings.selectedModel = placementModel(id: "birds", snapBehavior: .floating)
+        for _ in 0..<3 { XCTAssertTrue(settings.adjustPendingHeight(.raise)) }
+        let placed = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: Transform(translation: [0.12, 0.20, -0.35])))
+        XCTAssertEqual(try saveAndRestoreY(placed), 0.26, accuracy: 0.000001)
+    }
+
+    func testPostPlacementEditedHeightSurvivesRestore() throws {
+        var edited = Transform(translation: [-0.21, 0.18, 0.43])
+        edited = try XCTUnwrap(VerticalAdjustment.applying(.raise, to: edited))
+        edited = try XCTUnwrap(VerticalAdjustment.applying(.raise, to: edited))
+        XCTAssertEqual(try saveAndRestoreY(edited), 0.22, accuracy: 0.000001)
+    }
+
+    private func saveAndRestoreY(_ transform: Transform) throws -> Float {
+        let (manager, root) = activeManager()
+        let (_, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        entity.transform = transform
+        let data = try JSONEncoder().encode(try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: manager)))
+        let saved = try XCTUnwrap(JSONDecoder().decode(SavedWorld.self, from: data).placedAssets.first)
+        let restoredRoot = Entity()
+        let restored = ModelEntity(mesh: .generateBox(size: 0.1))
+        restoredRoot.addChild(restored)
+        restored.generateCollisionShapes(recursive: true)
+        XCTAssertTrue(SavedPlacedAssetRestorer.apply(saved, to: restored, under: restoredRoot))
+        return restored.position.y
+    }
     private func objectCandidate(normal: SIMD3<Float> = [0, 1, 0],
                                  category: ModelCategory? = .land,
                                  role: PlacementRole? = .base,
