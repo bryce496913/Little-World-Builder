@@ -64,6 +64,18 @@ struct SavedPlacedAsset: Codable, Identifiable {
     var localTransform: CodableTransform
 }
 
+/// Restores the authoritative transform of a placed root after it has been attached to the
+/// build root and configured. Catalog transforms and size normalization are placement-time
+/// operations whose results are already baked into `localTransform`.
+enum SavedPlacedAssetRestorer {
+    @discardableResult
+    static func apply(_ savedAsset: SavedPlacedAsset, to entity: ModelEntity, under buildRoot: Entity) -> Bool {
+        guard savedAsset.localTransform.isFinite, entity.parent === buildRoot else { return false }
+        entity.transform = savedAsset.localTransform.realityKitTransform
+        return true
+    }
+}
+
 struct CodableVector3: Codable, Equatable {
     var x, y, z: Float
     static let one = Self(x: 1, y: 1, z: 1), zero = Self(x: 0, y: 0, z: 0)
