@@ -9,6 +9,7 @@ import SwiftUI
 
 struct BrowseView: View {
     @EnvironmentObject var modelsViewModel: ModelsViewModel
+    @EnvironmentObject var placementSettings: PlacementSettings
     @Binding var showBrowse: Bool
     @State private var errorMessage: String?
 
@@ -37,6 +38,7 @@ struct BrowseView: View {
                     .padding(20)
                 }
             }
+            .onDisappear { placementSettings.cancelModelSelection() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { self.showBrowse = false }.foregroundColor(AppTheme.text)
@@ -101,10 +103,12 @@ struct HorizontalGrid: View {
                 LazyHGrid(rows: gridItemLayout, spacing: 14) {
                     ForEach(items) { model in
                         ItemButton(model: model, isSelected: placementSettings.selectedModel?.id == model.id) {
+                            let requestID = placementSettings.beginModelSelection()
                             model.asyncLoadModelEntity { completed, error in
+                                guard self.placementSettings.isModelSelectionCurrent(requestID), self.showBrowse else { return }
                                 if completed {
+                                    guard self.placementSettings.completeModelSelection(model, requestID: requestID) else { return }
                                     self.errorMessage = nil
-                                    self.placementSettings.selectedModel = model
                                     self.worldManager.beginPlacingAsset(catalogAssetID: model.id)
                                     self.showBrowse = false
                                 } else {

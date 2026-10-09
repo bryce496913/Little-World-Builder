@@ -222,9 +222,9 @@ final class GridVisualController {
         grid.isEnabled = true
     }
 
-    func showPreview(result: GridSnapResult, settings: GridSettings, visualBounds: SIMD2<Float>?, showsFootprint: Bool,
+    func showPreview(result: GridSnapResult, settings: GridSettings, visualBounds: SIMD2<Float>?, footprint: GridFootprint, showsFootprint: Bool,
                      root: Entity?, rootWorldTransform: simd_float4x4, in arView: ARView) {
-        if showsFootprint, let dimensions = GuideGeometry.gridMarkerDimensions(footprint: result.effectiveFootprint, cellSizeMeters: settings.cellSizeMeters) {
+        if showsFootprint, let dimensions = GuideGeometry.gridMarkerDimensions(footprint: footprint, cellSizeMeters: settings.cellSizeMeters) {
             if renderedFootprintDimensions != dimensions {
                 footprintMarker.model = ModelComponent(mesh: .generatePlane(width: dimensions.x, depth: dimensions.y), materials: [UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.24))])
                 renderedFootprintDimensions = dimensions
