@@ -32,6 +32,7 @@ final class WorldManager: ObservableObject {
     private(set) var activeAnchor: AnchorEntity?
     private(set) var buildRoot: Entity?
     private(set) var placedAssets: [UUID: PlacedAssetRecord] = [:]
+    private var pendingWorldRestoreID: UUID?
     private let store = SavedWorldStore.shared
     @Published private(set) var gridConfiguration: SavedGridConfiguration?
     @Published private(set) var interactionState: BuilderInteractionState = .browse
@@ -124,7 +125,7 @@ final class WorldManager: ObservableObject {
         }
         entity.removeFromParent()
     }
-    func resetActiveWorld() { activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); interactionState = .browse; heightAdjustmentState = .inactive; setGridConfiguration(nil) }
+    func resetActiveWorld() { pendingWorldRestoreID = nil; activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); interactionState = .browse; heightAdjustmentState = .inactive; setGridConfiguration(nil) }
 
     func belongsToActiveBuildRoot(_ entity: Entity?) -> Bool {
         guard let buildRoot, var current = entity else { return false }
@@ -158,9 +159,18 @@ final class WorldManager: ObservableObject {
     func savedWorlds() -> [SavedWorld] { store.loadAll() }
     func save(_ world: SavedWorld) { store.save(world) }
     func delete(_ world: SavedWorld) { store.delete(world) }
-    func loadWorld(_ world: SavedWorld) { pendingWorldForPlacement = world; beginPlacingSavedWorld(id: world.id) }
-    func finishPendingWorldPlacement() { pendingWorldForPlacement = nil; finishPlacement() }
-    func cancelPendingWorldPlacement() { pendingWorldForPlacement = nil; finishPlacement() }
+    func beginPendingWorldRestore(worldID: UUID) -> UUID? {
+        guard pendingWorldForPlacement?.id == worldID, pendingWorldRestoreID == nil else { return nil }
+        let id = UUID()
+        pendingWorldRestoreID = id
+        return id
+    }
+    func isPendingWorldRestoreCurrent(_ id: UUID, worldID: UUID) -> Bool {
+        pendingWorldRestoreID == id && pendingWorldForPlacement?.id == worldID
+    }
+    func loadWorld(_ world: SavedWorld) { pendingWorldRestoreID = nil; pendingWorldForPlacement = world; beginPlacingSavedWorld(id: world.id) }
+    func finishPendingWorldPlacement() { pendingWorldRestoreID = nil; pendingWorldForPlacement = nil; finishPlacement() }
+    func cancelPendingWorldPlacement() { pendingWorldRestoreID = nil; pendingWorldForPlacement = nil; finishPlacement() }
 }
 
 final class SavedWorldStore {

@@ -23,9 +23,13 @@ final class Model: ObservableObject, Identifiable {
     let defaultScale: Float
     let rotationXDegrees: Float
     private var cancellable: AnyCancellable?
+    private var loadHandlers: [(Bool, Error?) -> Void] = []
+    private let entityLoader: (URL) -> AnyPublisher<ModelEntity, Error>
     private var cachedNormalizedHorizontalBounds: SIMD2<Float>?
 
-    init(entry: AssetManifestEntry, assetURL: URL, bundle: Bundle = .main) {
+    init(entry: AssetManifestEntry, assetURL: URL, bundle: Bundle = .main,
+         entityLoader: @escaping (URL) -> AnyPublisher<ModelEntity, Error> = { ModelEntity.loadModelAsync(contentsOf: $0).eraseToAnyPublisher() }) {
+        self.entityLoader = entityLoader
         id = entry.id; name = entry.displayName; category = entry.category
         self.assetURL = assetURL; assetFileName = entry.fileName
         thumbnailFileName = entry.thumbnailFileName; placementRole = entry.placementRole
@@ -36,13 +40,43 @@ final class Model: ObservableObject, Identifiable {
     }
 
     func asyncLoadModelEntity(handler: @escaping (Bool, Error?) -> Void) {
-        cancellable = ModelEntity.loadModelAsync(contentsOf: assetURL).sink(receiveCompletion: {
-            if case .failure(let error) = $0 { print("Model Error: \(self.assetFileName): \(error.localizedDescription)"); handler(false, error) }
-        }, receiveValue: { entity in
-            self.modelEntity = entity
-            self.cachedNormalizedHorizontalBounds = nil
-            handler(true, nil)
-        })
+        if modelEntity != nil { handler(true, nil); return }
+        loadHandlers.append(handler)
+        guard cancellable == nil else { return }
+        cancellable = entityLoader(assetURL)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                self.cancellable = nil
+                if case .failure(let error) = completion {
+                    print("Model Error: \(self.assetFileName): \(error.localizedDescription)")
+                    self.finishLoad(success: false, error: error)
+                }
+            }, receiveValue: { entity in
+                self.modelEntity = entity
+                self.cachedNormalizedHorizontalBounds = nil
+                self.finishLoad(success: true, error: nil)
+            })
+    }
+
+    private func finishLoad(success: Bool, error: Error?) {
+        let handlers = loadHandlers
+        loadHandlers.removeAll()
+        handlers.forEach { $0(success, error) }
+    }
+
+    /// Normalize once in model-local axes, then compose the exact pending placement transform.
+    /// Measuring after pending yaw would change size at arbitrary angles and diverge from the guide.
+    func makePlacementEntity(using transform: Transform) -> ModelEntity? {
+        guard let source = modelEntity, VerticalAdjustment.isFinite(transform) else { return nil }
+        let prepared = source.clone(recursive: true)
+        prepared.transform = .identity
+        applyCatalogTransform(to: prepared)
+        let measurementRoot = Entity()
+        measurementRoot.addChild(prepared)
+        normalizePlacementSize(of: prepared, relativeTo: measurementRoot, at: .zero)
+        prepared.removeFromParent()
+        prepared.transform = Transform(matrix: transform.matrix * prepared.transform.matrix)
+        return prepared
     }
 
     func applyCatalogTransform(to entity: ModelEntity) {
@@ -72,13 +106,9 @@ final class Model: ObservableObject, Identifiable {
     /// cached in model-local axes, so pending yaw and scale can be applied without cloning per frame.
     func normalizedHorizontalVisualBounds() -> SIMD2<Float>? {
         if let cachedNormalizedHorizontalBounds { return cachedNormalizedHorizontalBounds }
-        guard let source = modelEntity else { return nil }
+        guard let prepared = makePlacementEntity(using: .identity) else { return nil }
         let measurementRoot = Entity()
-        let prepared = source.clone(recursive: true)
-        prepared.transform = .identity
-        applyCatalogTransform(to: prepared)
         measurementRoot.addChild(prepared)
-        normalizePlacementSize(of: prepared, relativeTo: measurementRoot, at: .zero)
         let bounds = prepared.visualBounds(relativeTo: measurementRoot)
         let dimensions = SIMD2<Float>(bounds.extents.x, bounds.extents.z)
         guard GuideGeometry.validVisualDimensions(dimensions) else {

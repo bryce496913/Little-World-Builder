@@ -44,9 +44,28 @@ final class PlacementSettings: ObservableObject {
     @Published private(set) var pendingHeightOffsetMeters: Float = 0
     private(set) var pendingPlacementSolution: PendingPlacementSolution?
 
+    private var modelSelectionRequestID: UUID?
+
+    func beginModelSelection() -> UUID {
+        let id = UUID()
+        modelSelectionRequestID = id
+        return id
+    }
+
+    func isModelSelectionCurrent(_ id: UUID) -> Bool { modelSelectionRequestID == id }
+    func cancelModelSelection() { modelSelectionRequestID = nil }
+
+    @discardableResult
+    func completeModelSelection(_ model: Model, requestID: UUID) -> Bool {
+        guard isModelSelectionCurrent(requestID) else { return false }
+        selectedModel = model
+        return true
+    }
+
     // When the user selects a model in BrowseView, this property is set.
     @Published var selectedModel: Model? {
         willSet(newValue) {
+            cancelModelSelection()
             print("Setting selectedModel to \(String(describing: newValue?.name))")
             if selectedModel?.id != newValue?.id { resetPendingHeight() }
         }
@@ -166,7 +185,7 @@ enum GridSnapResolver {
     /// Snaps on the build-root-local X/Z plane. Even footprints use a half-cell phase.
     static func resolve(rawLocalTransform: Transform, footprint: GridFootprint, snapBehavior: SnapBehavior,
                         settings: GridSettings, requestedQuarterTurns: Int) -> GridSnapResult? {
-        guard footprint.isValid, rawLocalTransform.translation.allFinite, rawLocalTransform.scale.allFinite else { return nil }
+        guard footprint.isValid, VerticalAdjustment.isFinite(rawLocalTransform) else { return nil }
         if snapBehavior == .free {
             return GridSnapResult(transform: rawLocalTransform, effectiveFootprint: footprint, gridCoordinateX: 0, gridCoordinateZ: 0)
         }
@@ -174,13 +193,13 @@ enum GridSnapResolver {
         let effective = turns.isMultiple(of: 2) ? footprint : GridFootprint(width: footprint.depth, depth: footprint.width)
         let cell = settings.cellSizeMeters
         guard cell.isFinite, cell > 0 else { return nil }
-        func snap(_ value: Float, dimension: Int) -> (Float, Int) {
+        func snap(_ value: Float, dimension: Int) -> (Float, Int)? {
             let offset = dimension.isMultiple(of: 2) ? cell / 2 : 0
-            let coordinate = Int(((value - offset) / cell).rounded())
+            guard let coordinate = Int(exactly: ((value - offset) / cell).rounded()) else { return nil }
             return (Float(coordinate) * cell + offset, coordinate)
         }
-        let x = snap(rawLocalTransform.translation.x, dimension: effective.width)
-        let z = snap(rawLocalTransform.translation.z, dimension: effective.depth)
+        guard let x = snap(rawLocalTransform.translation.x, dimension: effective.width),
+              let z = snap(rawLocalTransform.translation.z, dimension: effective.depth) else { return nil }
         var result = rawLocalTransform
         // Target height is already expressed in build-root-local space. Ground and water use the
         // selected support height just like floating assets; only X/Z and yaw are grid-resolved.

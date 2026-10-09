@@ -836,4 +836,165 @@ final class Little_World_BuilderTests: XCTestCase {
         let decoder=JSONDecoder(); decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity:"Infinity",negativeInfinity:"-Infinity",nan:"NaN")
         XCTAssertThrowsError(try decoder.decode(SavedWorld.self,from:encoder.encode(world)))
     }
+
+    func testPlacementNormalizationMatchesGuideAtArbitraryYawAndKeepsHeight() throws {
+        let entry = AssetManifestEntry(id: "yaw", fileName: "yaw.usdz", displayName: "Yaw", category: .decor,
+                                       thumbnailFileName: "yaw.png", defaultScale: 0.5, rotationXDegrees: 90,
+                                       placementRole: .decor, gridFootprint: .init(width: 2, depth: 1), snapBehavior: .ground)
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+        model.modelEntity = ModelEntity(mesh: .generateBox(size: [4, 2, 1]))
+        let guide = try XCTUnwrap(model.normalizedHorizontalVisualBounds())
+        let parent = Entity()
+        let baseline = try XCTUnwrap(model.makePlacementEntity(using: .identity))
+        parent.addChild(baseline)
+        for angle in [Float(0), .pi / 4, .pi / 2] {
+            let pending = Transform(scale: .one, rotation: simd_quatf(angle: angle, axis: [0, 1, 0]), translation: [1, 0.26, -2])
+            let placed = try XCTUnwrap(model.makePlacementEntity(using: pending))
+            parent.addChild(placed)
+            XCTAssertEqual(placed.scale.x, baseline.scale.x, accuracy: 0.00001)
+            XCTAssertEqual(placed.scale.y, baseline.scale.y, accuracy: 0.00001)
+            XCTAssertEqual(placed.scale.z, baseline.scale.z, accuracy: 0.00001)
+            let bounds = placed.visualBounds(relativeTo: parent)
+            let expectedX = abs(cos(angle)) * guide.x + abs(sin(angle)) * guide.y
+            let expectedZ = abs(sin(angle)) * guide.x + abs(cos(angle)) * guide.y
+            XCTAssertEqual(bounds.extents.x, expectedX, accuracy: 0.0001)
+            XCTAssertEqual(bounds.extents.z, expectedZ, accuracy: 0.0001)
+            XCTAssertEqual(bounds.center.x, pending.translation.x, accuracy: 0.0001)
+            XCTAssertEqual(bounds.center.z, pending.translation.z, accuracy: 0.0001)
+            XCTAssertEqual(bounds.min.y, pending.translation.y, accuracy: 0.0001)
+        }
+        XCTAssertEqual(model.modelEntity?.scale, SIMD3<Float>.one)
+    }
+
+    func testRenderedRectangularFootprintRotatesExactlyOnce() throws {
+        let root = Entity()
+        let visuals = GridVisualController()
+        let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
+        let footprint = GridFootprint(width: 2, depth: 3)
+        for turns in 0..<4 {
+            let result = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: .identity, footprint: footprint,
+                                                              snapBehavior: .ground, settings: .default, requestedQuarterTurns: turns))
+            visuals.showPreview(result: result, settings: .default, visualBounds: nil, footprint: footprint,
+                                showsFootprint: true, root: root, rootWorldTransform: matrix_identity_float4x4, in: view)
+            let marker = try XCTUnwrap(root.children.first { $0.name == "temporary-grid-footprint-marker" })
+            let bounds = marker.visualBounds(relativeTo: root)
+            XCTAssertEqual(bounds.extents.x, Float(result.effectiveFootprint.width) * GridSettings.default.cellSizeMeters, accuracy: 0.0001)
+            XCTAssertEqual(bounds.extents.z, Float(result.effectiveFootprint.depth) * GridSettings.default.cellSizeMeters, accuracy: 0.0001)
+        }
+    }
+
+    func testLatestCatalogRequestWinsAndDismissalRejectsCompletion() {
+        let settings = PlacementSettings()
+        let older = settings.beginModelSelection()
+        let newer = settings.beginModelSelection()
+        let tree = placementModel(id: "tree")
+        let rock = placementModel(id: "rock")
+        XCTAssertFalse(settings.completeModelSelection(tree, requestID: older))
+        XCTAssertTrue(settings.completeModelSelection(rock, requestID: newer))
+        XCTAssertFalse(settings.completeModelSelection(tree, requestID: older))
+        XCTAssertTrue(settings.selectedModel === rock)
+        let dismissed = settings.beginModelSelection()
+        settings.cancelModelSelection()
+        XCTAssertFalse(settings.completeModelSelection(tree, requestID: dismissed))
+        XCTAssertTrue(settings.selectedModel === rock)
+    }
+
+    func testRepeatedModelLoadsSharePublisherAndCompleteEveryWaiterOnMainThread() {
+        let entry = AssetManifestEntry(id: "shared", fileName: "shared.usdz", displayName: "Shared", category: .decor,
+                                       thumbnailFileName: "shared.png", defaultScale: 1, rotationXDegrees: 0,
+                                       placementRole: .decor, gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+        let publisher = PassthroughSubject<ModelEntity, Error>()
+        var loadCount = 0
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName), entityLoader: { _ in
+            loadCount += 1
+            return publisher.eraseToAnyPublisher()
+        })
+        let loaded = expectation(description: "Both saved instances finish loading")
+        loaded.expectedFulfillmentCount = 2
+        for _ in 0..<2 {
+            model.asyncLoadModelEntity { success, error in
+                XCTAssertTrue(Thread.isMainThread)
+                XCTAssertTrue(success)
+                XCTAssertNil(error)
+                loaded.fulfill()
+            }
+        }
+        XCTAssertEqual(loadCount, 1)
+        let source = ModelEntity(mesh: .generateBox(size: 0.1))
+        DispatchQueue.global().async {
+            publisher.send(source)
+            publisher.send(completion: .finished)
+        }
+        wait(for: [loaded], timeout: 2)
+        XCTAssertTrue(model.modelEntity === source)
+        model.asyncLoadModelEntity { success, _ in XCTAssertTrue(success) }
+        XCTAssertEqual(loadCount, 1)
+    }
+
+    func testFailedSharedModelLoadCompletesEveryWaiterAndCanRetry() {
+        let entry = AssetManifestEntry(id: "failed", fileName: "failed.usdz", displayName: "Failed", category: .decor,
+                                       thumbnailFileName: "failed.png", defaultScale: 1, rotationXDegrees: 0,
+                                       placementRole: .decor, gridFootprint: .init(width: 1, depth: 1), snapBehavior: .ground)
+        var loadCount = 0
+        let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName), entityLoader: { _ in
+            loadCount += 1
+            return Fail<ModelEntity, Error>(error: NSError(domain: "ModelLoad", code: 1)).eraseToAnyPublisher()
+        })
+        let failed = expectation(description: "All waiters observe failure")
+        failed.expectedFulfillmentCount = 2
+        for _ in 0..<2 {
+            model.asyncLoadModelEntity { success, error in
+                XCTAssertFalse(success)
+                XCTAssertNotNil(error)
+                XCTAssertTrue(Thread.isMainThread)
+                failed.fulfill()
+            }
+        }
+        wait(for: [failed], timeout: 2)
+        XCTAssertEqual(loadCount, 1)
+        let retried = expectation(description: "Failure permits another load")
+        model.asyncLoadModelEntity { success, error in
+            XCTAssertFalse(success); XCTAssertNotNil(error); retried.fulfill()
+        }
+        wait(for: [retried], timeout: 2)
+        XCTAssertEqual(loadCount, 2)
+    }
+
+    func testSavedWorldRestoreRejectsDuplicateCancelledResetAndReplacedRequests() throws {
+        let manager = WorldManager()
+        let world = SavedWorld(id: UUID(), name: "World", createdAt: Date(), updatedAt: Date(), placedAssets: [], thumbnailFileName: nil)
+        manager.loadWorld(world)
+        let first = try XCTUnwrap(manager.beginPendingWorldRestore(worldID: world.id))
+        XCTAssertNil(manager.beginPendingWorldRestore(worldID: world.id))
+        XCTAssertTrue(manager.isPendingWorldRestoreCurrent(first, worldID: world.id))
+        manager.cancelPendingWorldPlacement()
+        XCTAssertFalse(manager.isPendingWorldRestoreCurrent(first, worldID: world.id))
+        manager.loadWorld(world)
+        let second = try XCTUnwrap(manager.beginPendingWorldRestore(worldID: world.id))
+        manager.loadWorld(world)
+        XCTAssertFalse(manager.isPendingWorldRestoreCurrent(second, worldID: world.id))
+        let third = try XCTUnwrap(manager.beginPendingWorldRestore(worldID: world.id))
+        manager.resetActiveWorld()
+        XCTAssertFalse(manager.isPendingWorldRestoreCurrent(third, worldID: world.id))
+        XCTAssertNotNil(manager.pendingWorldForPlacement) // Opening a new AR view preserves the pending world.
+    }
+
+
+    func testGridCoordinateOverflowFromSavedSettingsFailsSafely() throws {
+        let saved = SavedGridConfiguration(cellSizeMeters: Float.leastNonzeroMagnitude, rotationStepDegrees: 90, wasEnabled: true)
+        let decoded = try JSONDecoder().decode(SavedGridConfiguration.self, from: JSONEncoder().encode(saved))
+        XCTAssertNil(GridSnapResolver.resolve(rawLocalTransform: Transform(translation: [1, 0, 1]),
+                                             footprint: .init(width: 1, depth: 1), snapBehavior: .ground,
+                                             settings: decoded.validatedSettings, requestedQuarterTurns: 0))
+        XCTAssertNil(GridSnapResolver.resolve(rawLocalTransform: Transform(translation: [.greatestFiniteMagnitude, 0, 1]),
+                                             footprint: .init(width: 1, depth: 1), snapBehavior: .ground,
+                                             settings: .default, requestedQuarterTurns: 0))
+        let normal = try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: Transform(translation: [0.12, 0.7, -0.24]),
+                                                          footprint: .init(width: 1, depth: 1), snapBehavior: .ground,
+                                                          settings: .default, requestedQuarterTurns: 0))
+        XCTAssertEqual(normal.transform.translation.x, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(normal.transform.translation.y, 0.7, accuracy: 0.0001)
+        XCTAssertEqual(normal.transform.translation.z, -0.2, accuracy: 0.0001)
+    }
+
 }

@@ -69,7 +69,13 @@ struct ARViewContainer: UIViewRepresentable {
         if placementSettings.placementMode == .grid {
             guard let snapped = GridSnapResolver.resolve(rawLocalTransform: rawLocal, footprint: model.gridFootprint,
                                                          snapBehavior: model.snapBehavior, settings: placementSettings.gridSettings,
-                                                         requestedQuarterTurns: placementSettings.requestedQuarterTurns) else { return }
+                                                         requestedQuarterTurns: placementSettings.requestedQuarterTurns) else {
+                placementSettings.publish(nil)
+                placementSettings.isPlacementAvailable = false
+                placementSettings.placementStatusMessage = "Placement unavailable"
+                arView.gridVisuals.hidePreview()
+                return
+            }
             result = snapped
             arView.gridVisuals.showGrid(settings: placementSettings.gridSettings, root: worldManager.buildRoot,
                                         candidateWorldTransform: rawWorld, in: arView)
@@ -91,7 +97,7 @@ struct ARViewContainer: UIViewRepresentable {
                                                 isValid: true, capturedAt: Date())
         placementSettings.publish(solution)
         arView.gridVisuals.showPreview(result: finalResult, settings: placementSettings.gridSettings,
-                                       visualBounds: model.normalizedHorizontalVisualBounds(), showsFootprint: placementSettings.placementMode == .grid,
+                                       visualBounds: model.normalizedHorizontalVisualBounds(), footprint: model.gridFootprint, showsFootprint: placementSettings.placementMode == .grid,
                                        root: worldManager.buildRoot, rootWorldTransform: rootWorld, in: arView)
         placementSettings.placementStatusMessage = placementSettings.placementMode == .grid && model.snapBehavior == .free ? "Free placement asset" : "Ready to place"
     }
@@ -102,9 +108,8 @@ struct ARViewContainer: UIViewRepresentable {
         guard solution.canConfirm(assetID: model.id),
               placementSettings.pendingPlacementSolution?.id == solution.id,
               placementSettings.selectedModel?.id == model.id,
-              let source=model.modelEntity else { print("Placement Error: stale or mismatched placement for \(model.id)"); return }
+              let clone=model.makePlacementEntity(using: solution.rootLocalTransform) else { print("Placement Error: stale or mismatched placement for \(model.id)"); return }
         let requestedWorld = solution.rawWorldTransform
-        let resolved = solution.rootLocalTransform
         let root: Entity
         if let existing=worldManager.buildRoot { root=existing }
         else {
@@ -115,15 +120,15 @@ struct ARViewContainer: UIViewRepresentable {
                 arView.gridVisuals.showGrid(settings: placementSettings.gridSettings, root: root, candidateWorldTransform: requestedWorld, in: arView)
             }
         }
-        let clone=source.clone(recursive:true); clone.name="placed-\(UUID().uuidString)"; clone.transform=resolved; model.applyCatalogTransform(to:clone)
-        let placementPosition=resolved.translation
-        root.addChild(clone); model.normalizePlacementSize(of:clone,relativeTo:root,at:placementPosition)
+        clone.name="placed-\(UUID().uuidString)"
+        root.addChild(clone)
         configure(clone,in:arView); worldManager.register(clone,model:model)
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
         placementSettings.resetPendingRotation(); placementSettings.resetPendingHeight(); arView.gridVisuals.hidePreview(); worldManager.finishPlacement()
     }
 
     private func place(_ world: SavedWorld, at worldTransform: simd_float4x4, in arView: CustomARView) {
+        guard let restoreID = worldManager.beginPendingWorldRestore(worldID: world.id) else { return }
         let root=Entity(); root.name="build-root"; let group=DispatchGroup()
         var restored:[(ModelEntity,Model,SavedPlacedAsset)]=[]
         for saved in world.placedAssets {
@@ -146,6 +151,8 @@ struct ARViewContainer: UIViewRepresentable {
             if let source=model.modelEntity { attach(source) } else { group.enter(); model.asyncLoadModelEntity { ok,error in if ok,let source=model.modelEntity { attach(source) } else { print("World Error: \(saved.assetFileName): \(error?.localizedDescription ?? "load failed")") }; group.leave() } }
         }
         group.notify(queue:.main) {
+            guard self.worldManager.isPendingWorldRestoreCurrent(restoreID, worldID: world.id),
+                  self.sceneManager.arView === arView else { return }
             let anchor=AnchorEntity(world:worldTransform); anchor.name="active-world-anchor"; anchor.addChild(root); arView.scene.addAnchor(anchor)
             self.worldManager.activate(anchor:anchor,buildRoot:root); self.sceneManager.activeAnchor=anchor
             self.worldManager.setGridConfiguration(world.gridConfiguration)
