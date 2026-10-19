@@ -23,12 +23,18 @@ struct PendingPlacementSolution {
     let gridCoordinateZ: Int?
     let isValid: Bool
     let capturedAt: Date
+    var preparedModelID: UUID? = nil
+    var preparedRootTransform: Transform? = nil
 #if DEBUG
     var heightDiagnostics: PlacementHeightDiagnostics? = nil
 #endif
 
     func canConfirm(assetID: String, now: Date = Date()) -> Bool {
-        isValid && selectedAssetID == assetID && now.timeIntervalSince(capturedAt) >= 0 && now.timeIntervalSince(capturedAt) <= Self.maximumAge
+        let columns = [rawWorldTransform.columns.0, rawWorldTransform.columns.1, rawWorldTransform.columns.2, rawWorldTransform.columns.3]
+        return isValid && selectedAssetID == assetID && capturedSurfaceHeight.isFinite
+            && VerticalAdjustment.isFinite(rootLocalTransform)
+            && columns.allSatisfy { $0.x.isFinite && $0.y.isFinite && $0.z.isFinite && $0.w.isFinite }
+            && now.timeIntervalSince(capturedAt) >= 0 && now.timeIntervalSince(capturedAt) <= Self.maximumAge
     }
 }
 
@@ -123,7 +129,7 @@ final class PlacementSettings: ObservableObject {
     func publish(_ solution: PendingPlacementSolution?) { pendingPlacementSolution = solution }
 
     func capturePlacement(for model: Model, now: Date = Date()) -> ConfirmedPlacement? {
-        guard let solution = pendingPlacementSolution,
+        guard selectedModel?.id == model.id, let solution = pendingPlacementSolution,
               solution.canConfirm(assetID: model.id, now: now) else { return nil }
         return ConfirmedPlacement(model: model, solution: solution)
     }

@@ -1,51 +1,72 @@
 # Ground placement on multilevel islands
 
-## Root cause and scope
+## Scope and platform decision
 
-The baseline path is `ARView.hitTest` → registered placed root → `PlacementTargetPolicy` → world-to-build-root conversion → Free/Grid resolution → pending height offset → captured guide solution → prepared model → registration. Grid resolution preserves local Y. Model preparation bottom-centers the selected asset before composing that solution. Neither stage substitutes the supporting island's bounds.
+This pass targets iOS 18.0 as explicitly requested. The project, app, and unit-test Debug/Release deployment settings are 18.0; the UI-test target inherits that project setting. Eligible land/base supports use `ShapeResource.generateStaticMesh(from:)`, available on iOS 18.0. The earlier custom ray/triangle tree is removed from this local patch. No application team, bundle identifier, schema, asset files, or grid dimensions change.
 
-The inaccurate height enters earlier: generated collision shapes can bridge a concave beach or valley. The old code uses `CollisionCastHit.position` as the surface point. A hit on that envelope is not necessarily on the rendered island mesh, even though ancestor resolution identifies the correct island.
+This change is scoped to native support-surface querying and captured bottom alignment. Height history, Undo/Reset, support relationships, and persistence redesign are excluded.
 
-The fix keeps that collision query for root identification, then intersects the same screen-center ray with that root's visible triangles. Mesh instances and child transforms are baked into a cached root-local triangle tree; the current root transform is used for every query. Preparation occurs at placement/restore configuration, not every frame. Temporary nonselectable visuals are excluded. No mesh hit or an unsuitable normal follows the existing AR-plane fallback. Saved-world root placement continues to use real-world planes only.
+## Root cause and evidence
 
-The refined hit is captured before the existing grid and pending-height steps. Supporting bounds never supply placement height. Objects remain independent children of `build-root`; no support relationship is persisted. Model normalization, catalog scale/rotation, schema 2, and Edit controls are unchanged.
+The baseline calls `generateCollisionShapes(recursive:)`, then treats `CollisionCastHit.position` as the native placement target. A convex approximation can bridge a concave beach or valley. Static inspection finds no downstream replacement with the island's bounds: local conversion and the existing Grid resolver retain the incoming Y. Therefore a wrong incoming collision hit cannot be repaired with a supporting-bounds adjustment.
 
-## Reproduction evidence and limits
+Independent synthetic geometry demonstrates the problem with one connected multilevel mesh: its convex envelope returns Y=0.50 over a lower beach at Y=0.14, a middle level at Y=0.30, and an upper level at Y=0.50. Exact triangle intersections give each local height. This is mathematical reproduction, not an executed RealityKit or iPhone measurement. The native-collision regression test compares the old generated shape with iOS 18 static meshes on this fixture; it remains unexecuted here.
 
-A synthetic connected mesh has a beach at Y=0, slopes, and plateaus at Y=1. Its convex envelope returns Y=1 for both beach and plateau. Triangle intersections return Y=0 at the beach and Y=1 at the plateau. With a +0.04 m offset, the expected bottoms are 0.04 and 1.04 respectively. An independent Python/SciPy geometry reproduction confirmed this distinction; it is not a RealityKit runtime result.
+Actual before/after iPhone hit values are unavailable. DEBUG diagnostics must establish those values on a real island before the device fix is declared verified.
 
-The XCTest fixture recreates this mesh and compares RealityKit's generated collision hits with the production triangle refinement. Additional cases exercise five affected manifest entries, Free/Grid, signed pending offsets, authored child offsets, catalog rotation/scale, translated/rotated build roots, restoration, edited supports, eligible/steep slopes, oblique rays, temporary visuals, misses, and invalid rays.
+## Native collision correction
 
-Xcode, Swift, iOS SDKs, and a physical iPhone were unavailable in the implementation environment. XCTest compilation/execution and actual island measurements remain required. Asset validation and binary-hash checks passed; no USDZ or PNG changed.
+The existing convex geometry remains available for selection. For eligible placement-support assets only, preparation starts one asynchronous native static-mesh conversion for each visible model node at placement/restore configuration time. Generated triangle shapes are retained in the nodes' `CollisionComponent`s. No collision generation, mesh conversion, or custom triangle traversal runs in the frame update.
 
-## On-device comparison
+A transient readiness component prevents an island from being targeted before all its native shapes are ready. A failed conversion, invalid hit/normal, incomplete preparation, or missing/deleted/unregistered support retains safe rejection or the existing AR-plane fallback. Saved-world root placement remains plane-only. A generation identity and original-parent check reject superseded or detached preparation results.
 
-1. Run a DEBUG build on an iPhone. Place one multilevel island and select Tree.
-2. Aim at a visibly lower beach, confirm placement, and capture the single `PLACEMENT_HEIGHT` line.
-3. Repeat on a higher plateau of the same island. Repeat in Free and Grid, then with positive and negative pending height offsets.
-4. Repeat with Rock, Flowers, Crabs, and Grass. Check an eligible gentle slope, then move off the island to verify AR-plane fallback.
-5. Save, clear, restore elsewhere, and confirm the adjusted bottoms and independent Edit behavior survive.
+No persistent support relationship is created. All placed objects remain direct children of `build-root`; moving the island later does not move them.
 
-Each confirmation logs the support asset ID and target source; raw collision world position/Y/normal; refined surface world position/Y/normal; hit position in build-root coordinates; supporting visual-bounds minimum/maximum Y in build-root coordinates; resolved placement Y; captured pending offset; selected model's prepared minimum Y; final registered-root local Y; and final visible bottom local Y.
+## Captured height and bottom alignment
 
-Compare `visibleBottomLocalY` with `hitLocal.y + offset`, within floating-point tolerance. The registered root's Y can differ because bottom-centering includes the authored model-origin correction. Compare the visible bottom rather than forcing the registered root to equal the surface height. A changed collision Y with an unchanged refined beach height is expected when the convex envelope bridges the beach.
+The pipeline is:
 
-The trace travels with the captured guide solution and prints once at confirmation. It is DEBUG-only and is not part of saved data. If the screen-center ray misses the actual visible mesh, the convex height must not be used as a replacement.
-
-## Required Mac validation
-
-Discover an available simulator and use its destination for the unit suite:
-
-```sh
-python3 Scripts/validate_assets.py
-xcodebuild -list -project "Little World Builder.xcodeproj"
-xcodebuild -project "Little World Builder.xcodeproj" -scheme "Little World Builder" \
-  -destination '<available iOS Simulator destination>' \
-  -only-testing:Little\ World\ BuilderTests test
-xcodebuild -project "Little World Builder.xcodeproj" -scheme "Little World Builder" \
-  -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
-xcodebuild -project "Little World Builder.xcodeproj" -scheme "Little World Builder" \
-  -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
-xcodebuild -project "Little World Builder.xcodeproj" -scheme "Little World Builder" \
-  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+```text
+native static-mesh CollisionCastHit.position/normal
+→ category/role and upward-normal eligibility
+→ world-to-build-root-local transform
+→ Free or existing Grid X/Z/yaw resolution, retaining captured local Y
+→ selected asset's cached prepared bottom alignment
+→ pending vertical offset
+→ captured guide transform and captured registered-root transform
+→ confirmation copies the captured registered-root transform
 ```
+
+Model preparation evaluates catalog rotation, existing size normalization, and manifest `defaultScale` once per model load. It bottom-centers an isolated clone, validates the bounds, and caches only geometry metadata and the normalized root transform. Child/source geometry is never moved in place.
+
+Let `P` be the cached normalized model-root transform, `R` the resolved placement rotation/scale without translation, and `b` the minimum Y of the selected asset's prepared bounds transformed by `R`. Then:
+
+```text
+alignedRoot = resolvedContact * P
+alignedRoot.translation.y -= b
+finalRoot.translation.y = alignedRoot.translation.y + pendingHeightOffset
+final visible bottom Y = captured local surface Y + pendingHeightOffset
+```
+
+This accounts for centered, bottom-aligned, and below-root geometry; catalog rotation; normalization; manifest scale; pending yaw; and positive finite user scale. Upright object placement has yaw only. Supporting-model bounds are diagnostic values, never alignment inputs. The registered root Y need not equal the visible bottom because it includes the authored-pivot correction.
+
+The guide and final root transforms, model-preparation identity, support ID, captured surface height, and height offset are captured together. Confirmation performs no raycast, scale normalization, or new Y calculation. It rejects another asset, stale solution, changed preparation, missing selection, or deleted/unready supporting root. Invalid model bounds are rejected instead of placing an invisible asset.
+
+Free keeps the raw hit X/Z and orientation behavior. Grid snaps X/Z and yaw with the existing resolver while retaining captured surface Y. Free-behavior assets still bypass snapping. Floating and water behavior and manifest metadata are unchanged. There is no downward re-query from snapped X/Z: visible height differences when snapping across a slope are a separate follow-up.
+
+## Validation and device procedure
+
+Focused tests cover native lower/middle/upper surface hits, edited support/child transforms, the exact 0.50 support / 0.14 hit case, affected manifest entries, pivot variations, Free/Grid, signed/zero offsets, user scale, captured transforms, ordinary schema-2 round-trip compatibility, invalid geometry, missing selection, non-finite transforms, and stale/deleted/unready supports. Existing grid, world-to-local, fallback/normal, first-placement, and persistence assertions are retained.
+
+Run asset validation, focused tests, the full unit suite, `xcodebuild -list`, Debug and Release simulator builds, and generic iOS compilation with signing disabled on a Mac with Xcode 16 or newer. This Linux environment has no Xcode, Swift compiler, simulator, iOS SDK, or iPhone, so those runtime/build checks cannot be reported as passing.
+
+On an iOS 18+ iPhone:
+
+1. Start a fresh world on a real floor. Confirm the root remains on the floor when pending height changes.
+2. On one multilevel island, place Tree low, Rock in the middle, Flowers high, Crabs on a low beach/ledge, and Grass at two levels. Repeat in Free and Grid.
+3. Confirm each visible bottom matches the guide and its captured local surface, not the support's maximum Y. Test positive, zero, and negative offsets, yaw, and scale.
+4. Move the guide from island to floor; confirm no island height/ID remains. Test later floor placement.
+5. Confirm all objects remain direct `build-root` children; moving the island does not move them.
+6. Save, clear, restore once at another physical location, and compare the placed local transforms and continued Edit behavior. No persistence redesign is included.
+
+Each confirmation prints one DEBUG-only `PLACEMENT_HEIGHT` line: support asset ID/source; raw collision world position/Y/normal; selected surface world position/Y/normal; collision and hit local positions; support bounds min/max local Y; resolved contact Y; captured pending offset; prepared asset minimum Y; final registered-root Y; and visible bottom Y. Compare the last value to `hitLocal.y + offset` within floating-point tolerance. Logging is not per frame and is absent from Release.

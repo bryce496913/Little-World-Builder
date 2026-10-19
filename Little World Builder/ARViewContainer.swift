@@ -59,6 +59,14 @@ struct ARViewContainer: UIViewRepresentable {
             if placementSettings.placementMode == .free { arView.gridVisuals.hideGrid() }
             return
         }
+        guard worldManager.isPlacementSupportValid(source: target.source, instanceID: target.supportingObjectID),
+              let geometry = model.preparedPlacementGeometry() else {
+            placementSettings.publish(nil)
+            placementSettings.isPlacementAvailable = false
+            placementSettings.placementStatusMessage = "Placement unavailable"
+            arView.gridVisuals.hidePreview()
+            return
+        }
         let rawWorld = target.worldTransform
         let rootWorld = worldManager.buildRoot?.transformMatrix(relativeTo: nil) ?? rawWorld
         guard let localMatrix = WorldTransformMath.localMatrix(world: rawWorld, rootWorld: rootWorld) else {
@@ -86,6 +94,10 @@ struct ARViewContainer: UIViewRepresentable {
         guard let finalTransform = placementSettings.transformByApplyingPendingHeight(to: result.transform) else {
             placementSettings.publish(nil); arView.gridVisuals.hidePreview(); return
         }
+        guard let bottomAligned = geometry.rootTransform(for: result.transform),
+              let modelRootTransform = placementSettings.transformByApplyingPendingHeight(to: bottomAligned) else {
+            placementSettings.publish(nil); arView.gridVisuals.hidePreview(); return
+        }
         let finalResult = GridSnapResult(transform: finalTransform, effectiveFootprint: result.effectiveFootprint,
                                          gridCoordinateX: result.gridCoordinateX, gridCoordinateZ: result.gridCoordinateZ)
         var solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
@@ -95,6 +107,8 @@ struct ARViewContainer: UIViewRepresentable {
                                                 gridCoordinateX: placementSettings.placementMode == .grid ? result.gridCoordinateX : nil,
                                                 gridCoordinateZ: placementSettings.placementMode == .grid ? result.gridCoordinateZ : nil,
                                                 isValid: true, capturedAt: Date())
+        solution.preparedModelID = geometry.id
+        solution.preparedRootTransform = modelRootTransform
 #if DEBUG
         var diagnostics = arView.nativePlacementManager.heightDiagnostics
         diagnostics?.hitLocalPosition = rawLocal.translation
@@ -118,7 +132,10 @@ struct ARViewContainer: UIViewRepresentable {
         guard solution.canConfirm(assetID: model.id),
               placementSettings.pendingPlacementSolution?.id == solution.id,
               placementSettings.selectedModel?.id == model.id,
-              let clone=model.makePlacementEntity(using: solution.rootLocalTransform) else { print("Placement Error: stale or mismatched placement for \(model.id)"); return }
+              worldManager.isPlacementSupportValid(source: solution.targetSource, instanceID: solution.supportingObjectID),
+              let preparationID = solution.preparedModelID,
+              let capturedRootTransform = solution.preparedRootTransform,
+              let clone=model.makePlacementEntity(resolvedTransform: capturedRootTransform, preparationID: preparationID) else { print("Placement Error: stale or mismatched placement for \(model.id)"); return }
         let requestedWorld = solution.rawWorldTransform
         let root: Entity
         if let existing=worldManager.buildRoot { root=existing }
@@ -134,11 +151,8 @@ struct ARViewContainer: UIViewRepresentable {
         root.addChild(clone)
         configure(clone,model:model,in:arView); worldManager.register(clone,model:model)
 #if DEBUG
-        let prepared = model.makePlacementEntity(using: .identity)
-        let preparedRoot = Entity()
-        if let prepared { preparedRoot.addChild(prepared) }
         solution.heightDiagnostics?.log(solution: solution,
-                                        preparedMinimumY: prepared?.visualBounds(relativeTo: preparedRoot).min.y,
+                                        preparedMinimumY: model.preparedPlacementGeometry()?.normalizedBounds.min.y,
                                         placed: clone, buildRoot: root)
 #endif
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
@@ -192,10 +206,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
 
     private func configure(_ entity: ModelEntity, model: Model, in arView: CustomARView) {
-        entity.generateCollisionShapes(recursive: true)
-        if PlacementTargetPolicy.isSupportCapable(category: model.category, placementRole: model.placementRole) {
-            arView.nativePlacementManager.surfaceRaycaster.prepare(entity)
-        }
+        PlacementCollisionGeometry.prepare(entity, category: model.category, role: model.placementRole)
     }
 }
 

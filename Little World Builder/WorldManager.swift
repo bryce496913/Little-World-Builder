@@ -49,6 +49,13 @@ final class WorldManager: ObservableObject {
     }
     func entity(for instanceID: UUID) -> ModelEntity? { record(for: instanceID)?.entity }
 
+    func isPlacementSupportValid(source: PlacementTargetSource, instanceID: UUID?) -> Bool {
+        if source == .arPlane { return instanceID == nil }
+        guard let instanceID, let entity = entity(for: instanceID), let buildRoot else { return false }
+        return entity.parent === buildRoot && entity.isEnabled
+            && (entity.components[PlacementSupportCollision.self] as? PlacementSupportCollision)?.isReady == true
+    }
+
     @discardableResult
     func select(instanceID: UUID) -> Bool {
         guard let record = record(for: instanceID), belongsToActiveBuildRoot(record.entity) else {
