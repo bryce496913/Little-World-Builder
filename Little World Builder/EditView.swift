@@ -34,6 +34,11 @@ struct EditView: View {
                 editButton("Undo height adjustment", icon: "arrow.uturn.backward") { worldManager.undoSelectedHeightAdjustment() }
                     .disabled(!worldManager.heightAdjustmentState.canUndo)
             }
+            AppButton("Reset Height", systemImage: "arrow.counterclockwise", style: .secondary) {
+                worldManager.resetSelectedHeight()
+            }
+            .accessibilityLabel("Reset selected object height")
+            .disabled(!worldManager.heightAdjustmentState.canReset)
             HStack(spacing: 18) {
                 AppButton("Done", systemImage: "checkmark", style: .secondary) {
                     worldManager.clearSelection()
