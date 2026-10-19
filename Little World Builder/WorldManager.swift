@@ -36,6 +36,7 @@ final class WorldManager: ObservableObject {
     private let store = SavedWorldStore.shared
     @Published private(set) var gridConfiguration: SavedGridConfiguration?
     @Published private(set) var interactionState: BuilderInteractionState = .browse
+    private(set) var heightEditSession: HeightEditSession?
     @Published private(set) var heightAdjustmentState: HeightAdjustmentState = .inactive
 
     func activate(anchor: AnchorEntity, buildRoot: Entity) { resetActiveWorld(); self.activeAnchor = anchor; self.buildRoot = buildRoot }
@@ -61,57 +62,64 @@ final class WorldManager: ObservableObject {
         guard let record = record(for: instanceID), belongsToActiveBuildRoot(record.entity) else {
             clearSelection(); return false
         }
-        if interactionState.selection?.instanceID != instanceID {
-            heightAdjustmentState = heightState(for: instanceID, previousY: nil)
-        } else {
-            heightAdjustmentState = heightState(for: instanceID, previousY: heightAdjustmentState.previousY)
+        if interactionState.selection?.instanceID != instanceID || heightEditSession == nil {
+            heightEditSession = nil
+            if let entity = directSelectedRoot(id: instanceID), VerticalAdjustment.isFinite(entity.transform) {
+                heightEditSession = HeightEditSession(selectedObjectID: instanceID, startingLocalY: entity.position.y)
+            }
         }
+        heightAdjustmentState = heightState(for: instanceID)
         interactionState = .editing(.init(instanceID: instanceID, catalogAssetID: record.catalogAssetID))
         return true
     }
 
     func beginPlacingAsset(catalogAssetID: String) {
-        heightAdjustmentState = .inactive
+        endHeightSession()
         let next = BuilderInteractionState.placingAsset(catalogAssetID: catalogAssetID)
         if interactionState != next { interactionState = next }
     }
     func beginPlacingSavedWorld(id: UUID) {
-        heightAdjustmentState = .inactive
+        endHeightSession()
         let next = BuilderInteractionState.placingSavedWorld(worldID: id)
         if interactionState != next { interactionState = next }
     }
-    func finishPlacement() { heightAdjustmentState = .inactive; if interactionState != .browse { interactionState = .browse } }
+    func finishPlacement() { endHeightSession(); if interactionState != .browse { interactionState = .browse } }
     func clearSelection() {
-        heightAdjustmentState = .inactive
+        endHeightSession()
         if interactionState.selection != nil { interactionState = .browse }
     }
 
     @discardableResult
     func adjustSelectedHeight(_ direction: VerticalAdjustmentDirection) -> Bool {
-        guard let id = interactionState.selection?.instanceID,
-              let entity = directSelectedRoot(id: id),
-              let adjusted = VerticalAdjustment.applying(direction, to: entity.transform) else {
-            refreshHeightStateOrEndEditing()
-            return false
-        }
-        let previousY = entity.transform.translation.y
+        guard let (id, entity) = selectedHeightRoot(),
+              let adjusted = VerticalAdjustment.applying(direction, to: entity.transform),
+              adjusted.translation.y != entity.position.y else { return false }
+        heightEditSession?.record(y: entity.position.y)
         entity.transform = adjusted
-        heightAdjustmentState = heightState(for: id, previousY: previousY)
+        heightAdjustmentState = heightState(for: id)
         return true
     }
 
     @discardableResult
     func undoSelectedHeightAdjustment() -> Bool {
-        guard let id = interactionState.selection?.instanceID,
-              heightAdjustmentState.selectedInstanceID == id,
-              let previousY = heightAdjustmentState.previousY,
-              let entity = directSelectedRoot(id: id),
-              let restored = VerticalAdjustment.restoring(y: previousY, in: entity.transform) else {
-            refreshHeightStateOrEndEditing()
-            return false
-        }
+        guard let (id, entity) = selectedHeightRoot(),
+              let previousY = heightEditSession?.undoStack.last,
+              let restored = VerticalAdjustment.restoring(y: previousY, in: entity.transform) else { return false }
+        _ = heightEditSession?.undo()
         entity.transform = restored
-        heightAdjustmentState = heightState(for: id, previousY: nil)
+        heightAdjustmentState = heightState(for: id)
+        return true
+    }
+
+    @discardableResult
+    func resetSelectedHeight() -> Bool {
+        guard let (id, entity) = selectedHeightRoot(),
+              let baseline = heightEditSession?.startingLocalY,
+              let restored = VerticalAdjustment.restoring(y: baseline, in: entity.transform) else { return false }
+        // Even a mixed sequence ending at the baseline must discard its history on Reset.
+        heightEditSession?.clearHistory()
+        entity.transform = restored
+        heightAdjustmentState = heightState(for: id)
         return true
     }
 
@@ -121,18 +129,18 @@ final class WorldManager: ObservableObject {
         let entity = placedAssets.removeValue(forKey: id)?.entity
         entity?.removeFromParent()
         interactionState = .browse
-        heightAdjustmentState = .inactive
+        endHeightSession()
         return entity != nil
     }
 
     func remove(entity: Entity) {
         if let item = placedAssets.first(where: { $0.value.entity === entity }) {
             placedAssets.removeValue(forKey: item.key)
-            if interactionState.selection?.instanceID == item.key { interactionState = .browse; heightAdjustmentState = .inactive }
+            if interactionState.selection?.instanceID == item.key { interactionState = .browse; endHeightSession() }
         }
         entity.removeFromParent()
     }
-    func resetActiveWorld() { pendingWorldRestoreID = nil; activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); interactionState = .browse; heightAdjustmentState = .inactive; setGridConfiguration(nil) }
+    func resetActiveWorld() { pendingWorldRestoreID = nil; activeAnchor?.removeFromParent(); activeAnchor=nil; buildRoot=nil; placedAssets.removeAll(); interactionState = .browse; endHeightSession(); setGridConfiguration(nil) }
 
     func belongsToActiveBuildRoot(_ entity: Entity?) -> Bool {
         guard let buildRoot, var current = entity else { return false }
@@ -146,18 +154,34 @@ final class WorldManager: ObservableObject {
         guard let buildRoot, let entity = entity(for: id), entity.parent === buildRoot else { return nil }
         return entity
     }
-    private func heightState(for id: UUID, previousY: Float?) -> HeightAdjustmentState {
-        guard let entity = directSelectedRoot(id: id), VerticalAdjustment.isFinite(entity.transform) else {
+    private func endHeightSession() {
+        heightEditSession = nil
+        heightAdjustmentState = .inactive
+    }
+    private func heightState(for id: UUID) -> HeightAdjustmentState {
+        guard let entity = directSelectedRoot(id: id), VerticalAdjustment.isFinite(entity.transform),
+              let session = heightEditSession, session.selectedObjectID == id else {
             return HeightAdjustmentState(selectedInstanceID: id, currentY: nil, previousY: nil)
         }
-        return HeightAdjustmentState(selectedInstanceID: id, currentY: entity.transform.translation.y, previousY: previousY)
+        return HeightAdjustmentState(selectedInstanceID: id, currentY: entity.position.y,
+                                     previousY: session.undoStack.last, startingLocalY: session.startingLocalY)
     }
-    private func refreshHeightStateOrEndEditing() {
-        guard let id = interactionState.selection?.instanceID, directSelectedRoot(id: id) != nil else {
+    /// Scene updates retire stale selection/history even when no height button is pressed.
+    func validateHeightEditSession() {
+        guard let id = interactionState.selection?.instanceID else { return }
+        guard let entity = directSelectedRoot(id: id) else { clearSelection(); return }
+        if heightEditSession != nil && !VerticalAdjustment.isFinite(entity.transform) { endHeightSession() }
+    }
+    private func selectedHeightRoot() -> (UUID, ModelEntity)? {
+        guard let id = interactionState.selection?.instanceID, let entity = directSelectedRoot(id: id) else {
             clearSelection()
-            return
+            return nil
         }
-        heightAdjustmentState = heightState(for: id, previousY: nil)
+        guard VerticalAdjustment.isFinite(entity.transform), heightEditSession?.selectedObjectID == id else {
+            endHeightSession()
+            return nil
+        }
+        return (id, entity)
     }
     func setGridConfiguration(_ configuration: SavedGridConfiguration?) {
         guard gridConfiguration != configuration else { return }

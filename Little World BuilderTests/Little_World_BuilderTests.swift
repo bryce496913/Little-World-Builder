@@ -1199,3 +1199,254 @@ final class Little_World_BuilderTests: XCTestCase {
     }
 
 }
+
+extension Little_World_BuilderTests {
+    func testHeightHistorySequencesAndExhaustedUndo() {
+        let sequences: [[VerticalAdjustmentDirection]] = [
+            [.raise], [.raise, .raise, .raise, .raise], [.lower, .lower, .lower],
+            [.raise, .lower, .lower, .raise, .raise]
+        ]
+        for sequence in sequences {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+            entity.position.y = 0.137
+            manager.select(instanceID: id)
+            XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+            var prior: [Float] = []
+            for direction in sequence {
+                prior.append(entity.position.y)
+                XCTAssertTrue(manager.adjustSelectedHeight(direction))
+            }
+            for y in prior.reversed() {
+                XCTAssertTrue(manager.heightAdjustmentState.canUndo)
+                XCTAssertTrue(manager.undoSelectedHeightAdjustment())
+                XCTAssertEqual(entity.position.y, y)
+            }
+            XCTAssertEqual(entity.position.y, 0.137)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+        }
+    }
+
+    func testNewHeightAdjustmentAfterUndoKeepsLinearHistory() {
+        let (manager, root) = activeManager()
+        let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        entity.position.y = 0.24; manager.select(instanceID: id)
+        manager.adjustSelectedHeight(.raise); let intermediate = entity.position.y
+        manager.adjustSelectedHeight(.raise); manager.undoSelectedHeightAdjustment()
+        manager.adjustSelectedHeight(.lower)
+        XCTAssertEqual(manager.heightEditSession?.undoStack, [0.24, intermediate])
+        XCTAssertTrue(manager.undoSelectedHeightAdjustment()); XCTAssertEqual(entity.position.y, intermediate)
+        XCTAssertTrue(manager.undoSelectedHeightAdjustment()); XCTAssertEqual(entity.position.y, 0.24)
+        XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+    }
+
+    func testHeightResetAfterAdjustmentsAndUndoClearsHistory() {
+        for undoCount in 0...2 {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "fish", name: "Fish", in: manager, root: root)
+            entity.position.y = -0.083; manager.select(instanceID: id)
+            XCTAssertFalse(manager.heightAdjustmentState.canReset)
+            XCTAssertTrue(manager.resetSelectedHeight())
+            for direction in [VerticalAdjustmentDirection.raise, .lower, .lower, .raise, .raise] {
+                XCTAssertTrue(manager.adjustSelectedHeight(direction))
+            }
+            for _ in 0..<undoCount { XCTAssertTrue(manager.undoSelectedHeightAdjustment()) }
+            XCTAssertTrue(manager.resetSelectedHeight())
+            XCTAssertEqual(entity.position.y, -0.083)
+            XCTAssertEqual(manager.heightEditSession?.undoStack, [])
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            XCTAssertFalse(manager.heightAdjustmentState.canReset)
+            XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+        }
+    }
+
+    func testHeightResetAfterOneAndMultipleRaises() {
+        for count in [1, 4] {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+            entity.position.y = 0.24; manager.select(instanceID: id)
+            for _ in 0..<count { XCTAssertTrue(manager.adjustSelectedHeight(.raise)) }
+            XCTAssertTrue(manager.heightAdjustmentState.canReset)
+            XCTAssertTrue(manager.resetSelectedHeight())
+            XCTAssertEqual(entity.position.y, 0.24)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            XCTAssertFalse(manager.heightAdjustmentState.canReset)
+        }
+    }
+
+    func testHeightHistoryLimitRetainsResetBaseline() {
+        let (manager, root) = activeManager()
+        let (id, entity) = registeredObject(id: "birds", name: "Birds", in: manager, root: root)
+        entity.position.y = 0.426; manager.select(instanceID: id)
+        let count = HeightEditSession.maximumHistoryCount
+        for _ in 0..<(count + 17) { XCTAssertTrue(manager.adjustSelectedHeight(.raise)) }
+        XCTAssertEqual(manager.heightEditSession?.undoStack.count, count)
+        for _ in 0..<count { XCTAssertTrue(manager.undoSelectedHeightAdjustment()) }
+        XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+        XCTAssertNotEqual(entity.position.y, 0.426)
+        XCTAssertTrue(manager.heightAdjustmentState.canReset)
+        XCTAssertTrue(manager.resetSelectedHeight())
+        XCTAssertEqual(entity.position.y, 0.426)
+    }
+
+    func testHeightUndoAndResetPreserveNewerTransformAndOtherObjects() throws {
+        let (manager, root) = activeManager()
+        let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        let (_, other) = registeredObject(id: "birds", name: "Birds", in: manager, root: root)
+        let child = ModelEntity(mesh: .generateBox(size: 0.1)); child.position = [3, 4, 5]; entity.addChild(child)
+        let childBefore = child.transform; let otherBefore = other.transform
+        entity.position = [1, 0.137, 2]; manager.select(instanceID: id)
+        manager.adjustSelectedHeight(.raise); let firstY = entity.position.y
+        entity.transform = SelectionTransformEditor.rotated(entity.transform, radians: 0.7)
+        entity.transform = SelectionTransformEditor.scaled(entity.transform, factor: 1.3)
+        entity.position.x = 7; entity.position.z = -9
+        let rotation = entity.orientation.vector; let scale = entity.scale
+        // Gesture/UI refresh of the same selection must not replace its baseline/history.
+        manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+        XCTAssertTrue(manager.undoSelectedHeightAdjustment()); XCTAssertEqual(entity.position.y, firstY)
+        XCTAssertTrue(manager.resetSelectedHeight()); XCTAssertEqual(entity.position.y, 0.137)
+        XCTAssertEqual(entity.position.x, 7); XCTAssertEqual(entity.position.z, -9)
+        XCTAssertEqual(entity.orientation.vector, rotation); XCTAssertEqual(entity.scale, scale)
+        XCTAssertEqual(child.transform.matrix, childBefore.matrix)
+        XCTAssertEqual(other.transform.matrix, otherBefore.matrix)
+        XCTAssertTrue(entity.parent === root)
+        let resolved = try XCTUnwrap(PlacedObjectResolver.registeredRoot(from: child, buildRoot: root))
+        XCTAssertTrue(resolved.entity === entity)
+        XCTAssertTrue(manager.select(instanceID: resolved.component.instanceID))
+        XCTAssertTrue(manager.adjustSelectedHeight(.lower))
+        XCTAssertEqual(child.transform.matrix, childBefore.matrix)
+    }
+
+    func testHeightSessionsAreIsolatedAcrossTreeBirdsFishAndReselection() {
+        let (manager, root) = activeManager()
+        for (asset, y) in [("tree", Float(0.137)), ("birds", 0.426), ("fish", -0.083)] {
+            let (id, entity) = registeredObject(id: asset, name: asset, in: manager, root: root)
+            entity.position.y = y; manager.select(instanceID: id)
+            XCTAssertEqual(manager.heightEditSession?.startingLocalY, y)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            manager.adjustSelectedHeight(.raise); let editedY = entity.position.y
+            manager.clearSelection(); XCTAssertNil(manager.heightEditSession)
+            manager.select(instanceID: id)
+            XCTAssertEqual(manager.heightEditSession?.startingLocalY, editedY)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            XCTAssertFalse(manager.heightAdjustmentState.canReset)
+            manager.adjustSelectedHeight(.lower)
+        }
+    }
+
+    func testHeightSessionCleanupAtEveryWorldAndEditBoundary() throws {
+        let endings: [(WorldManager, UUID, ModelEntity) -> Void] = [
+            { m, _, _ in m.clearSelection() }, { m, _, _ in _ = m.removeSelected() },
+            { m, _, e in m.remove(entity: e) }, { m, _, _ in m.resetActiveWorld() },
+            { m, _, _ in m.beginPlacingAsset(catalogAssetID: "tree") },
+            { m, _, _ in m.beginPlacingSavedWorld(id: UUID()) },
+            { m, _, _ in m.finishPlacement() },
+            { m, _, _ in
+                let anchor = AnchorEntity(world: .zero); let root = Entity(); anchor.addChild(root)
+                m.activate(anchor: anchor, buildRoot: root)
+            },
+            { m, _, e in e.removeFromParent(); _ = m.adjustSelectedHeight(.raise) },
+            { m, _, _ in _ = m.select(instanceID: UUID()) },
+            { m, _, _ in
+                if let saved = ScenePersistenceHelper.makeWorld(from: m) { m.loadWorld(saved) }
+            }
+        ]
+        for end in endings {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+            manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+            XCTAssertNotNil(manager.heightEditSession)
+            end(manager, id, entity)
+            XCTAssertNil(manager.heightEditSession)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            XCTAssertFalse(manager.heightAdjustmentState.canReset)
+        }
+    }
+
+    func testInvalidHeightSessionActionsDoNotChangeTransforms() {
+        for invalid: Float in [.nan, .infinity, -.infinity] {
+            for action in 0..<3 {
+                let (manager, root) = activeManager()
+                let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+                manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+                entity.position.y = invalid
+                let x = entity.position.x; let scale = entity.scale
+                switch action {
+                case 0: XCTAssertFalse(manager.adjustSelectedHeight(.raise))
+                case 1: XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+                default: XCTAssertFalse(manager.resetSelectedHeight())
+                }
+                XCTAssertNil(manager.heightEditSession)
+                XCTAssertEqual(entity.position.x, x); XCTAssertEqual(entity.scale, scale)
+                if invalid.isNaN { XCTAssertTrue(entity.position.y.isNaN) }
+                else { XCTAssertEqual(entity.position.y, invalid) }
+            }
+        }
+        let manager = WorldManager()
+        XCTAssertFalse(manager.adjustSelectedHeight(.raise))
+        XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+        XCTAssertFalse(manager.resetSelectedHeight())
+    }
+
+    func testSceneValidationDiscardsHistoryForDisappearedOrInvalidRoots() {
+        for detach in [true, false] {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+            manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+            if detach { entity.removeFromParent() } else { entity.scale.x = .nan }
+            manager.validateHeightEditSession()
+            XCTAssertNil(manager.heightEditSession)
+            XCTAssertFalse(manager.heightAdjustmentState.canUndo)
+            if detach { XCTAssertNil(manager.interactionState.selection) }
+        }
+    }
+
+    func testDetachedSelectedRootRejectsEveryHeightAction() {
+        for action in 0..<3 {
+            let (manager, root) = activeManager()
+            let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+            manager.select(instanceID: id); manager.adjustSelectedHeight(.raise)
+            entity.removeFromParent(); let before = entity.transform
+            switch action {
+            case 0: XCTAssertFalse(manager.adjustSelectedHeight(.lower))
+            case 1: XCTAssertFalse(manager.undoSelectedHeightAdjustment())
+            default: XCTAssertFalse(manager.resetSelectedHeight())
+            }
+            XCTAssertNil(manager.heightEditSession)
+            XCTAssertNil(manager.interactionState.selection)
+            XCTAssertEqual(entity.transform.matrix, before.matrix)
+        }
+    }
+
+    func testHeightSessionIsNotSavedAndRestoredYBecomesNewBaseline() throws {
+        let (manager, root) = activeManager()
+        let (id, entity) = registeredObject(id: "tree", name: "Tree", in: manager, root: root)
+        entity.position.y = 0.137; manager.select(instanceID: id)
+        manager.adjustSelectedHeight(.raise); manager.adjustSelectedHeight(.raise)
+        let finalY = entity.position.y
+        let data = try JSONEncoder().encode(try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: manager)))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let assets = try XCTUnwrap(json["placedAssets"] as? [[String: Any]])
+        for object in [json] + assets {
+            for key in ["heightEditSession", "startingLocalY", "undoStack", "interactionState", "selection"] {
+                XCTAssertNil(object[key])
+            }
+        }
+        let decoded = try JSONDecoder().decode(SavedWorld.self, from: data)
+        XCTAssertEqual(decoded.schemaVersion, 2)
+        let saved = try XCTUnwrap(decoded.placedAssets.first)
+        XCTAssertEqual(saved.localTransform.position.y, finalY)
+        manager.resetActiveWorld(); XCTAssertNil(manager.heightEditSession)
+        let (restoredManager, restoredRoot) = activeManager()
+        let restored = ModelEntity(); restoredRoot.addChild(restored)
+        XCTAssertTrue(SavedPlacedAssetRestorer.apply(saved, to: restored, under: restoredRoot))
+        restoredManager.register(restored, model: placementModel(id: "tree"), instanceID: id)
+        XCTAssertNil(restoredManager.heightEditSession)
+        restoredManager.select(instanceID: id)
+        XCTAssertEqual(restoredManager.heightEditSession?.startingLocalY, finalY)
+        XCTAssertFalse(restoredManager.heightAdjustmentState.canUndo)
+        restoredManager.adjustSelectedHeight(.lower); restoredManager.resetSelectedHeight()
+        XCTAssertEqual(restored.position.y, finalY)
+    }
+}

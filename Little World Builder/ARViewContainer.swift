@@ -21,6 +21,7 @@ struct ARViewContainer: UIViewRepresentable {
     func updateUIView(_ uiView: CustomARView, context: Context) {}
 
     private func updateScene(for arView: CustomARView) {
+        worldManager.validateHeightEditSession()
         if let model = placementSettings.selectedModel {
             worldManager.beginPlacingAsset(catalogAssetID: model.id)
         } else if let world = worldManager.pendingWorldForPlacement {
