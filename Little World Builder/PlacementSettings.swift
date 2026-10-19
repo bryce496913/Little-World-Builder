@@ -23,6 +23,9 @@ struct PendingPlacementSolution {
     let gridCoordinateZ: Int?
     let isValid: Bool
     let capturedAt: Date
+#if DEBUG
+    var heightDiagnostics: PlacementHeightDiagnostics? = nil
+#endif
 
     func canConfirm(assetID: String, now: Date = Date()) -> Bool {
         isValid && selectedAssetID == assetID && now.timeIntervalSince(capturedAt) >= 0 && now.timeIntervalSince(capturedAt) <= Self.maximumAge

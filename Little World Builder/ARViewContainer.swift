@@ -88,13 +88,23 @@ struct ARViewContainer: UIViewRepresentable {
         }
         let finalResult = GridSnapResult(transform: finalTransform, effectiveFootprint: result.effectiveFootprint,
                                          gridCoordinateX: result.gridCoordinateX, gridCoordinateZ: result.gridCoordinateZ)
-        let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
+        var solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
                                                 rawWorldTransform: rawWorld, rootLocalTransform: finalTransform,
                                                 targetSource: target.source, supportingObjectID: target.supportingObjectID,
                                                 capturedSurfaceHeight: rawLocal.translation.y,
                                                 gridCoordinateX: placementSettings.placementMode == .grid ? result.gridCoordinateX : nil,
                                                 gridCoordinateZ: placementSettings.placementMode == .grid ? result.gridCoordinateZ : nil,
                                                 isValid: true, capturedAt: Date())
+#if DEBUG
+        var diagnostics = arView.nativePlacementManager.heightDiagnostics
+        diagnostics?.hitLocalPosition = rawLocal.translation
+        if let collision = diagnostics?.collisionWorldPosition {
+            let localCollision = simd_inverse(rootWorld) * SIMD4<Float>(collision, 1)
+            diagnostics?.collisionLocalPosition = SIMD3(localCollision.x, localCollision.y, localCollision.z)
+        }
+        diagnostics?.pendingHeightOffset = placementSettings.pendingHeightOffsetMeters
+        solution.heightDiagnostics = diagnostics
+#endif
         placementSettings.publish(solution)
         arView.gridVisuals.showPreview(result: finalResult, settings: placementSettings.gridSettings,
                                        visualBounds: model.normalizedHorizontalVisualBounds(), footprint: model.gridFootprint, showsFootprint: placementSettings.placementMode == .grid,
@@ -122,7 +132,15 @@ struct ARViewContainer: UIViewRepresentable {
         }
         clone.name="placed-\(UUID().uuidString)"
         root.addChild(clone)
-        configure(clone,in:arView); worldManager.register(clone,model:model)
+        configure(clone,model:model,in:arView); worldManager.register(clone,model:model)
+#if DEBUG
+        let prepared = model.makePlacementEntity(using: .identity)
+        let preparedRoot = Entity()
+        if let prepared { preparedRoot.addChild(prepared) }
+        solution.heightDiagnostics?.log(solution: solution,
+                                        preparedMinimumY: prepared?.visualBounds(relativeTo: preparedRoot).min.y,
+                                        placed: clone, buildRoot: root)
+#endif
         placementSettings.recentlyPlaced.append(model); if placementSettings.selectedModel?.id==model.id { placementSettings.selectedModel=nil }
         placementSettings.resetPendingRotation(); placementSettings.resetPendingHeight(); arView.gridVisuals.hidePreview(); worldManager.finishPlacement()
     }
@@ -140,7 +158,7 @@ struct ARViewContainer: UIViewRepresentable {
                 // and exactly once; catalog orientation, normalization, snapping, and support
                 // height are already represented by that transform.
                 root.addChild(clone)
-                self.configure(clone,in:arView)
+                self.configure(clone,model:model,in:arView)
                 guard SavedPlacedAssetRestorer.apply(saved, to: clone, under: root) else {
                     clone.removeFromParent()
                     print("World Error: invalid restore transform for \(saved.assetFileName)")
@@ -173,7 +191,12 @@ struct ARViewContainer: UIViewRepresentable {
         }
     }
 
-    private func configure(_ entity:ModelEntity,in arView:ARView) { entity.generateCollisionShapes(recursive:true) }
+    private func configure(_ entity: ModelEntity, model: Model, in arView: CustomARView) {
+        entity.generateCollisionShapes(recursive: true)
+        if PlacementTargetPolicy.isSupportCapable(category: model.category, placementRole: model.placementRole) {
+            arView.nativePlacementManager.surfaceRaycaster.prepare(entity)
+        }
+    }
 }
 
 final class SceneManager: ObservableObject {

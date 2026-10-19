@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02SURFACERAYBUILD0000001 /* PlacedSurfaceRaycaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */; };
 		02MANIFESTSWBUILD000001 /* AssetManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTSWFILE000001 /* AssetManifest.swift */; };
 		02MANIFESTJSONBUILD001 /* AssetManifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTJSONFILE001 /* AssetManifest.json */; };
 		02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDFILE000000001 /* SavedWorld.swift */; };
@@ -58,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedSurfaceRaycaster.swift; sourceTree = "<group>"; };
 		02MANIFESTSWFILE000001 /* AssetManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetManifest.swift; sourceTree = "<group>"; };
 		02MANIFESTJSONFILE001 /* AssetManifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = AssetManifest.json; sourceTree = "<group>"; };
 		02WORLDFILE000000001 /* SavedWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorld.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 				02913EF727334C7800869572 /* Little_World_BuilderApp.swift */,
 				02913F2C27335E5B00869572 /* Model.swift */,
 				02913F2627335E5B00869572 /* ModelsViewModel.swift */,
+				02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */,
 				02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */,
 				02WORLDFILE000000001 /* SavedWorld.swift */,
 				02WORLDMANFILE000001 /* WorldManager.swift */,
@@ -364,6 +367,7 @@
 				02913F3927335E5C00869572 /* ControlView.swift in Sources */,
 				02E1046327C0379500BCFF73 /* EditView.swift in Sources */,
 				02913F3027335E5B00869572 /* PlacementSettings.swift in Sources */,
+				02SURFACERAYBUILD0000001 /* PlacedSurfaceRaycaster.swift in Sources */,
 				02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

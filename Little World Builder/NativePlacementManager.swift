@@ -93,6 +93,10 @@ private extension SIMD3 where Scalar == Float {
 }
 
 final class NativePlacementManager {
+#if DEBUG
+    private(set) var heightDiagnostics: PlacementHeightDiagnostics?
+#endif
+    let surfaceRaycaster = PlacedSurfaceRaycaster()
     private let indicator = PlacementIndicatorEntity()
     private(set) var placementTarget: PlacementTarget?
 
@@ -112,6 +116,9 @@ final class NativePlacementManager {
                 alignment: ARRaycastQuery.TargetAlignment,
                 purpose: PlacementQueryPurpose,
                 models: [Model]) {
+#if DEBUG
+        heightDiagnostics = nil
+#endif
         guard isPlacementActive else { clearTarget(); return }
 
         let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
@@ -124,6 +131,11 @@ final class NativePlacementManager {
                                                        planeTarget: planeTarget)
 
         guard let placementTarget else { clearTarget(); return }
+#if DEBUG
+        if heightDiagnostics == nil { heightDiagnostics = PlacementHeightDiagnostics() }
+        heightDiagnostics?.hitWorldPosition = placementTarget.worldPosition
+        heightDiagnostics?.hitWorldNormal = placementTarget.surfaceNormal
+#endif
         indicator.transform.matrix = placementTarget.worldTransform
         indicator.isEnabled = true
     }
@@ -144,13 +156,25 @@ final class NativePlacementManager {
         guard let hit = arView.hitTest(point, query: .nearest).first,
               let resolved = Self.registeredRoot(from: hit.entity),
               resolved.entity.isEnabled,
-              let model = models.first(where: { $0.id == resolved.component.catalogAssetID }) else { return nil }
+              let model = models.first(where: { $0.id == resolved.component.catalogAssetID }),
+              PlacementTargetPolicy.isSupportCapable(category: model.category, placementRole: model.placementRole) else { return nil }
 
-        let position = hit.position
+#if DEBUG
+        let bounds = resolved.entity.visualBounds(relativeTo: resolved.entity.parent)
+        heightDiagnostics = PlacementHeightDiagnostics(supportingAssetID: model.id,
+                                                       collisionWorldPosition: hit.position,
+                                                       collisionWorldNormal: hit.normal,
+                                                       supportingBoundsY: [bounds.min.y, bounds.max.y])
+#endif
+        // The collision hit identifies the eligible root only. Its convex hull can bridge lower
+        // terrain, so capture the actual rendered triangle under the same screen-center ray.
+        guard let ray = arView.ray(through: point),
+              let surface = surfaceRaycaster.hit(root: resolved.entity, origin: ray.origin, direction: ray.direction) else { return nil }
+        let position = surface.position
         var transform = matrix_identity_float4x4
         transform.columns.3 = SIMD4<Float>(position, 1)
         return .init(position: position,
-                     normal: hit.normal,
+                     normal: surface.normal,
                      worldTransform: transform,
                      instanceID: resolved.component.instanceID,
                      category: model.category,
@@ -287,3 +311,28 @@ final class GridVisualController {
         }
     }
 }
+
+#if DEBUG
+/// Captured with the guide solution; logging occurs once on confirmation, never every frame.
+struct PlacementHeightDiagnostics {
+    var supportingAssetID: String?
+    var collisionWorldPosition: SIMD3<Float>?
+    var collisionWorldNormal: SIMD3<Float>?
+    var collisionLocalPosition: SIMD3<Float>?
+    var supportingBoundsY: SIMD2<Float>?
+    var hitWorldPosition: SIMD3<Float> = .zero
+    var hitWorldNormal: SIMD3<Float> = .zero
+    var hitLocalPosition: SIMD3<Float> = .zero
+    var pendingHeightOffset: Float = 0
+
+    func log(solution: PendingPlacementSolution, preparedMinimumY: Float?, placed: Entity, buildRoot: Entity) {
+        let bottom = placed.visualBounds(relativeTo: buildRoot).min.y
+        print("PLACEMENT_HEIGHT asset=\(solution.selectedAssetID) support=\(supportingAssetID ?? "none") source=\(solution.targetSource) " +
+              "collisionWorld=\(String(describing: collisionWorldPosition)) collisionWorldY=\(String(describing: collisionWorldPosition?.y)) collisionNormal=\(String(describing: collisionWorldNormal)) " +
+              "surfaceWorld=\(hitWorldPosition) surfaceWorldY=\(hitWorldPosition.y) normal=\(hitWorldNormal) " +
+              "collisionLocal=\(String(describing: collisionLocalPosition)) hitLocal=\(hitLocalPosition) supportBoundsLocalY=\(String(describing: supportingBoundsY)) " +
+              "resolvedLocalY=\(solution.rootLocalTransform.translation.y) offset=\(pendingHeightOffset) " +
+              "preparedMinY=\(String(describing: preparedMinimumY)) registeredRootLocalY=\(placed.position.y) visibleBottomLocalY=\(bottom)")
+    }
+}
+#endif

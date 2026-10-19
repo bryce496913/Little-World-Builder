@@ -997,4 +997,160 @@ final class Little_World_BuilderTests: XCTestCase {
         XCTAssertEqual(normal.transform.translation.z, -0.2, accuracy: 0.0001)
     }
 
+    /// One connected mesh with a low central beach, two slopes, and high outer plateaus.
+    /// Its convex envelope spans the beach at Y=1 even though the visible beach is Y=0.
+    private func multilevelSupport(plateauHeight: Float = 1) throws -> ModelEntity {
+        let xs: [Float] = [-2, -1, -0.5, 0.5, 1, 2]
+        let ys: [Float] = [plateauHeight, plateauHeight, 0, 0, plateauHeight, plateauHeight]
+        var positions: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        for (x, y) in zip(xs, ys) { positions += [[x, y, -1], [x, y, 1]] }
+        for strip in 0..<(xs.count - 1) {
+            let a = UInt32(strip * 2)
+            indices += [a, a + 1, a + 2, a + 2, a + 1, a + 3]
+        }
+        var descriptor = MeshDescriptor(name: "multilevel-island")
+        descriptor.positions = MeshBuffers.Positions(positions)
+        descriptor.primitives = .triangles(indices)
+        return ModelEntity(mesh: try MeshResource.generate(from: [descriptor]))
+    }
+
+    func testMultilevelSurfaceRefinesConvexHitOnLowBeachAndHighPlateau() throws {
+        let support = try multilevelSupport()
+        let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
+        let anchor = AnchorEntity(world: SIMD3<Float>.zero)
+        anchor.addChild(support); view.scene.addAnchor(anchor)
+        support.generateCollisionShapes(recursive: true)
+        let raycaster = PlacedSurfaceRaycaster()
+        for (x, expectedY) in [(Float(0), Float(0)), (1.5, 1)] {
+            let origin = SIMD3<Float>(x, 3, 0)
+            let collision = try XCTUnwrap(view.scene.raycast(origin: origin, direction: [0, -1, 0], length: 10, query: .nearest).first)
+            let surface = try XCTUnwrap(raycaster.hit(root: support, origin: origin, direction: [0, -1, 0]))
+            XCTAssertEqual(collision.position.y, 1, accuracy: 0.0001)
+            XCTAssertEqual(surface.position.y, expectedY, accuracy: 0.0001)
+            XCTAssertEqual(surface.normal.y, 1, accuracy: 0.0001)
+        }
+    }
+
+    func testGroundAssetBottomFollowsLowAndHighSurfaceThroughGuideConfirmationAndRestore() throws {
+        let (manager, root) = activeManager()
+        root.position = [3, 2, -4]
+        root.orientation = simd_quatf(angle: 0.31, axis: [0, 1, 0])
+        let support = try multilevelSupport()
+        root.addChild(support)
+        let supportID = UUID()
+        support.components.set(LocalModelComponent(instanceID: supportID, catalogAssetID: "forest_island", assetFileName: "forest_island.usdz"))
+        let raycaster = PlacedSurfaceRaycaster()
+        let entries = try manifest().filter { ["tree", "rock", "flowers", "crabs", "grass"].contains($0.id) }
+        XCTAssertEqual(entries.count, 5)
+        for entry in entries {
+            let model = Model(entry: entry, assetURL: URL(fileURLWithPath: entry.fileName))
+            // Asymmetric, off-origin authored geometry exercises catalog rotation and bottom-centering.
+            let source = ModelEntity()
+            let child = ModelEntity(mesh: .generateBox(size: [1, 2, 0.7]))
+            child.position = [0.3, -0.4, 0.7]; source.addChild(child)
+            model.modelEntity = source
+            for (x, expectedY) in [(Float(0), Float(0)), (1.5, 1)] {
+                let localOrigin = SIMD3<Float>(x, 3, 0)
+                let worldOrigin = root.convert(position: localOrigin, to: nil)
+                let surface = try XCTUnwrap(raycaster.hit(root: support, origin: worldOrigin, direction: [0, -1, 0]))
+                var hitMatrix = matrix_identity_float4x4
+                hitMatrix.columns.3 = SIMD4(surface.position, 1)
+                let target = try XCTUnwrap(PlacementTargetPolicy.select(
+                    objectCandidate: .init(position: surface.position, normal: surface.normal, worldTransform: hitMatrix,
+                                           instanceID: supportID, category: .land, placementRole: .base), planeTarget: nil))
+                let local = Transform(matrix: try XCTUnwrap(WorldTransformMath.localMatrix(world: target.worldTransform, rootWorld: root.transformMatrix(relativeTo: nil))))
+                XCTAssertEqual(local.translation.y, expectedY, accuracy: 0.0001)
+                for mode in [PlacementMode.free, .grid] {
+                    for offsetSteps in [-2, 0, 3] {
+                        let settings = PlacementSettings(); settings.selectedModel = model
+                        settings.setPlacementMode(mode)
+                        for _ in 0..<abs(offsetSteps) { settings.adjustPendingHeight(offsetSteps < 0 ? .lower : .raise) }
+                        let base = mode == .grid
+                            ? try XCTUnwrap(GridSnapResolver.resolve(rawLocalTransform: local, footprint: entry.gridFootprint,
+                                                                    snapBehavior: entry.snapBehavior, settings: .default, requestedQuarterTurns: 1)).transform
+                            : local
+                        let final = try XCTUnwrap(settings.transformByApplyingPendingHeight(to: base))
+                        let solution = PendingPlacementSolution(id: UUID(), selectedAssetID: model.id,
+                                                                rawWorldTransform: target.worldTransform, rootLocalTransform: final,
+                                                                targetSource: target.source, supportingObjectID: target.supportingObjectID,
+                                                                capturedSurfaceHeight: local.translation.y, gridCoordinateX: nil, gridCoordinateZ: nil,
+                                                                isValid: true, capturedAt: Date())
+                        settings.publish(solution)
+                        let request = try XCTUnwrap(settings.capturePlacement(for: model))
+                        let placed = try XCTUnwrap(model.makePlacementEntity(using: request.solution.rootLocalTransform))
+                        root.addChild(placed); manager.register(placed, model: model)
+                        let expectedBottom = expectedY + Float(offsetSteps) * VerticalAdjustmentConfiguration.stepMeters
+                        XCTAssertEqual(placed.visualBounds(relativeTo: root).min.y, expectedBottom, accuracy: 0.0001, "\(entry.id) \(mode)")
+                        XCTAssertTrue(placed.parent === root)
+                        XCTAssertFalse(placed.parent === support)
+                        let savedWorld = try XCTUnwrap(ScenePersistenceHelper.makeWorld(from: manager))
+                        let saved = try XCTUnwrap(savedWorld.placedAssets.first)
+                        let restored = source.clone(recursive: true); root.addChild(restored)
+                        XCTAssertTrue(SavedPlacedAssetRestorer.apply(saved, to: restored, under: root))
+                        XCTAssertEqual(restored.visualBounds(relativeTo: root).min.y, expectedBottom, accuracy: 0.0001)
+                        restored.removeFromParent(); manager.remove(entity: placed)
+                    }
+                }
+            }
+        }
+    }
+
+    func testSurfaceCacheTracksEditedRootsAndIgnoresTemporaryGeometry() throws {
+        let root = Entity()
+        let support = Entity(); root.addChild(support)
+        let visible = try multilevelSupport(); visible.position = [0, 0.2, 0]; support.addChild(visible)
+        let distantHighChild = ModelEntity(mesh: .generateBox(size: 0.1))
+        distantHighChild.position = [10, 6, 0]; support.addChild(distantHighChild)
+        let outline = ModelEntity(mesh: .generatePlane(width: 10, depth: 10))
+        outline.position.y = 2; outline.components.set(NonSelectableComponent()); support.addChild(outline)
+        let raycaster = PlacedSurfaceRaycaster(); raycaster.prepare(support)
+        XCTAssertEqual(try XCTUnwrap(raycaster.hit(root: support, origin: [0, 4, 0], direction: [0, -1, 0])).position.y, 0.2, accuracy: 0.0001)
+        support.position = [2, 0.3, -1]
+        support.scale = [0.5, 2, 0.75]
+        support.orientation = simd_quatf(angle: 0.8, axis: [0, 1, 0])
+        let aboveBeach = support.convert(position: [0, 3, 0], to: nil)
+        let hit = try XCTUnwrap(raycaster.hit(root: support, origin: aboveBeach, direction: [0, -1, 0]))
+        XCTAssertEqual(hit.position.y, 0.7, accuracy: 0.0001)
+        XCTAssertEqual(hit.normal.y, 1, accuracy: 0.0001)
+    }
+
+    func testSurfaceSlopeMissAndInvalidRayKeepExistingFallbackPolicy() throws {
+        let root = Entity(); let support = try multilevelSupport(); root.addChild(support)
+        let raycaster = PlacedSurfaceRaycaster()
+        let slope = try XCTUnwrap(raycaster.hit(root: support, origin: [0.75, 3, 0], direction: [0, -1, 0]))
+        XCTAssertEqual(slope.position.y, 0.5, accuracy: 0.0001)
+        XCTAssertLessThan(slope.normal.y, PlacementTargetPolicy.minimumUpwardNormalDot)
+        XCTAssertNil(raycaster.hit(root: support, origin: [3, 3, 0], direction: [0, -1, 0]))
+        XCTAssertNil(raycaster.hit(root: support, origin: [.nan, 3, 0], direction: [0, -1, 0]))
+        XCTAssertNil(raycaster.hit(root: support, origin: [0, 3, 0], direction: .zero))
+        XCTAssertNil(raycaster.hit(root: support, origin: [0, 3, 0], direction: [1, 0, 0]))
+        var matrix = matrix_identity_float4x4; matrix.columns.3 = SIMD4(slope.position, 1)
+        let candidate = PlacementTargetPolicy.ObjectCandidate(position: slope.position, normal: slope.normal, worldTransform: matrix,
+                                                             instanceID: UUID(), category: .land, placementRole: .base)
+        let plane = planeTarget()
+        XCTAssertEqual(PlacementTargetPolicy.select(objectCandidate: candidate, planeTarget: plane)?.source, .arPlane)
+        XCTAssertEqual(PlacementTargetPolicy.select(purpose: .savedWorldRoot, objectCandidate: candidate, planeTarget: plane)?.source, .arPlane)
+        support.scale = .zero
+        XCTAssertNil(raycaster.hit(root: support, origin: [0, 3, 0], direction: [0, -1, 0]))
+    }
+
+
+    func testEligibleSlopeAndObliqueRayUseVisibleTrianglePointAndNormal() throws {
+        let root = Entity()
+        let support = try multilevelSupport(plateauHeight: 0.2); root.addChild(support)
+        let raycaster = PlacedSurfaceRaycaster()
+        let hit = try XCTUnwrap(raycaster.hit(root: support, origin: [0.75, 3, 0], direction: [0, -1, 0]))
+        XCTAssertEqual(hit.position.y, 0.1, accuracy: 0.0001)
+        XCTAssertGreaterThan(hit.normal.y, PlacementTargetPolicy.minimumUpwardNormalDot)
+        var matrix = matrix_identity_float4x4; matrix.columns.3 = SIMD4(hit.position, 1)
+        XCTAssertNotNil(PlacementTargetPolicy.objectTarget(from: .init(position: hit.position, normal: hit.normal,
+                                                                       worldTransform: matrix, instanceID: UUID(),
+                                                                       category: .land, placementRole: .base)))
+        let oblique = try XCTUnwrap(raycaster.hit(root: support, origin: [0, 3, 3], direction: [0, -1, -1]))
+        XCTAssertEqual(oblique.position.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(oblique.position.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(oblique.position.z, 0, accuracy: 0.0001)
+    }
+
 }
