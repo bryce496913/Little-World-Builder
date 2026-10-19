@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		02SURFACERAYBUILD0000001 /* PlacedSurfaceRaycaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */; };
 		02MANIFESTSWBUILD000001 /* AssetManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTSWFILE000001 /* AssetManifest.swift */; };
 		02MANIFESTJSONBUILD001 /* AssetManifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 02MANIFESTJSONFILE001 /* AssetManifest.json */; };
 		02WORLDDBUILD000000001 /* SavedWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02WORLDFILE000000001 /* SavedWorld.swift */; };
@@ -59,7 +58,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedSurfaceRaycaster.swift; sourceTree = "<group>"; };
 		02MANIFESTSWFILE000001 /* AssetManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetManifest.swift; sourceTree = "<group>"; };
 		02MANIFESTJSONFILE001 /* AssetManifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = AssetManifest.json; sourceTree = "<group>"; };
 		02WORLDFILE000000001 /* SavedWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedWorld.swift; sourceTree = "<group>"; };
@@ -165,7 +163,6 @@
 				02913EF727334C7800869572 /* Little_World_BuilderApp.swift */,
 				02913F2C27335E5B00869572 /* Model.swift */,
 				02913F2627335E5B00869572 /* ModelsViewModel.swift */,
-				02SURFACERAYFILE00000001 /* PlacedSurfaceRaycaster.swift */,
 				02NATIVEPLACEFILE000001 /* NativePlacementManager.swift */,
 				02WORLDFILE000000001 /* SavedWorld.swift */,
 				02WORLDMANFILE000001 /* WorldManager.swift */,
@@ -367,7 +364,6 @@
 				02913F3927335E5C00869572 /* ControlView.swift in Sources */,
 				02E1046327C0379500BCFF73 /* EditView.swift in Sources */,
 				02913F3027335E5B00869572 /* PlacementSettings.swift in Sources */,
-				02SURFACERAYBUILD0000001 /* PlacedSurfaceRaycaster.swift in Sources */,
 				02NATIVEPLACEBUILD000001 /* NativePlacementManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -455,7 +451,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -510,7 +506,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -530,7 +526,7 @@
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "Little World Builder/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -552,7 +548,7 @@
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "Little World Builder/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -572,7 +568,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				INFOPLIST_FILE = "Little World BuilderTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -594,7 +590,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				INFOPLIST_FILE = "Little World BuilderTests/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

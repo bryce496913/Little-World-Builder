@@ -96,7 +96,6 @@ final class NativePlacementManager {
 #if DEBUG
     private(set) var heightDiagnostics: PlacementHeightDiagnostics?
 #endif
-    let surfaceRaycaster = PlacedSurfaceRaycaster()
     private let indicator = PlacementIndicatorEntity()
     private(set) var placementTarget: PlacementTarget?
 
@@ -157,7 +156,8 @@ final class NativePlacementManager {
               let resolved = Self.registeredRoot(from: hit.entity),
               resolved.entity.isEnabled,
               let model = models.first(where: { $0.id == resolved.component.catalogAssetID }),
-              PlacementTargetPolicy.isSupportCapable(category: model.category, placementRole: model.placementRole) else { return nil }
+              PlacementTargetPolicy.isSupportCapable(category: model.category, placementRole: model.placementRole),
+              (resolved.entity.components[PlacementSupportCollision.self] as? PlacementSupportCollision)?.isReady == true else { return nil }
 
 #if DEBUG
         let bounds = resolved.entity.visualBounds(relativeTo: resolved.entity.parent)
@@ -166,15 +166,13 @@ final class NativePlacementManager {
                                                        collisionWorldNormal: hit.normal,
                                                        supportingBoundsY: [bounds.min.y, bounds.max.y])
 #endif
-        // The collision hit identifies the eligible root only. Its convex hull can bridge lower
-        // terrain, so capture the actual rendered triangle under the same screen-center ray.
-        guard let ray = arView.ray(through: point),
-              let surface = surfaceRaycaster.hit(root: resolved.entity, origin: ray.origin, direction: ray.direction) else { return nil }
-        let position = surface.position
+        // Eligible supports receive native static triangle-mesh collisions during preparation.
+        // Capture this exact local surface hit; no support bounds or second query supplies Y.
+        let position = hit.position
         var transform = matrix_identity_float4x4
         transform.columns.3 = SIMD4<Float>(position, 1)
         return .init(position: position,
-                     normal: surface.normal,
+                     normal: hit.normal,
                      worldTransform: transform,
                      instanceID: resolved.component.instanceID,
                      category: model.category,
@@ -336,3 +334,60 @@ struct PlacementHeightDiagnostics {
     }
 }
 #endif
+
+/// Transient readiness only; no support relationship or saved-world schema field is introduced.
+struct PlacementSupportCollision: Component {
+    let preparationID: UUID
+    var isReady: Bool
+}
+
+/// Conversion runs once at placement/restore. Accurate shapes are retained by CollisionComponent.
+enum PlacementCollisionGeometry {
+    static func prepare(_ entity: Entity, category: ModelCategory, role: PlacementRole) {
+        entity.generateCollisionShapes(recursive: true)
+        guard PlacementTargetPolicy.isSupportCapable(category: category, placementRole: role) else { return }
+        let id = UUID()
+        entity.components.set(PlacementSupportCollision(preparationID: id, isReady: false))
+        Task { @MainActor [weak entity] in
+            guard let entity else { return }
+            _ = await prepareSupport(entity, preparationID: id)
+        }
+    }
+
+    @MainActor
+    @discardableResult
+    static func prepareSupport(_ root: Entity, preparationID: UUID = UUID()) async -> Bool {
+        if root.components[PlacementSupportCollision.self] == nil {
+            root.components.set(PlacementSupportCollision(preparationID: preparationID, isReady: false))
+        }
+        guard (root.components[PlacementSupportCollision.self] as? PlacementSupportCollision)?.preparationID == preparationID,
+              let parent = root.parent else { return false }
+        var nodes: [Entity] = []
+        @MainActor func collect(_ entity: Entity) {
+            guard entity.isEnabled, entity.components[NonSelectableComponent.self] == nil else { return }
+            nodes.append(entity)
+            for child in entity.children { collect(child) }
+        }
+        collect(root)
+        var replacements: [(Entity, ShapeResource)] = []
+        do {
+            for entity in nodes {
+                if let model = entity.components[ModelComponent.self] as? ModelComponent,
+                   model.mesh.contents.models.contains(where: { $0.parts.contains(where: { ($0.triangleIndices?.count ?? 0) >= 3 }) }) {
+                    let shape = try await ShapeResource.generateStaticMesh(from: model.mesh)
+                    replacements.append((entity, shape))
+                }
+            }
+            guard !replacements.isEmpty, root.parent === parent,
+                  (root.components[PlacementSupportCollision.self] as? PlacementSupportCollision)?.preparationID == preparationID else { return false }
+            // Commit all native triangle shapes before allowing the root to become a target.
+            for entity in nodes { entity.components.remove(CollisionComponent.self) }
+            for (entity, shape) in replacements { entity.components.set(CollisionComponent(shapes: [shape])) }
+            root.components.set(PlacementSupportCollision(preparationID: preparationID, isReady: true))
+            return true
+        } catch {
+            print("Placement Surface Error: native mesh collision preparation failed for \(root.name): \(error.localizedDescription)")
+            return false
+        }
+    }
+}
